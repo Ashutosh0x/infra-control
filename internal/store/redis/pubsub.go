@@ -21,7 +21,7 @@ func (c *Cache) Publish(ctx context.Context, channel string, message any) error 
 // Subscribe listens for messages on the given Redis channel and invokes the handler.
 func (c *Cache) Subscribe(ctx context.Context, channel string, handler func(string)) error {
 	pubsub := c.client.Subscribe(ctx, channel)
-	defer pubsub.Close()
+	defer func() { _ = pubsub.Close() }()
 
 	ch := pubsub.Channel()
 	for {

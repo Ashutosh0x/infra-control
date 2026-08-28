@@ -31,19 +31,19 @@ type Snapshot struct {
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
-// RecoveryPlan describes the steps needed to recover from a failed change.
-type RecoveryPlan struct {
-	ID            string         `json:"id"`
-	SnapshotID    string         `json:"snapshot_id"`
-	RemediationID string         `json:"remediation_id"`
-	Steps         []RecoveryStep `json:"steps"`
-	EstimatedTime time.Duration  `json:"estimated_time"`
-	RiskLevel     string         `json:"risk_level"`
-	CreatedAt     time.Time      `json:"created_at"`
+// Plan describes the steps needed to recover from a failed change.
+type Plan struct {
+	ID            string        `json:"id"`
+	SnapshotID    string        `json:"snapshot_id"`
+	RemediationID string        `json:"remediation_id"`
+	Steps         []Step        `json:"steps"`
+	EstimatedTime time.Duration `json:"estimated_time"`
+	RiskLevel     string        `json:"risk_level"`
+	CreatedAt     time.Time     `json:"created_at"`
 }
 
-// RecoveryStep describes a single step in a recovery plan.
-type RecoveryStep struct {
+// Step describes a single step in a recovery plan.
+type Step struct {
 	Order       int    `json:"order"`
 	Action      string `json:"action"` // "restore_state", "apply_terraform", "verify_resource"
 	ResourceID  string `json:"resource_id,omitempty"`
@@ -52,7 +52,7 @@ type RecoveryStep struct {
 }
 
 // CreateSnapshot captures the current infrastructure state for potential rollback.
-func (e *Engine) CreateSnapshot(ctx context.Context, description string) (*Snapshot, error) {
+func (e *Engine) CreateSnapshot(_ context.Context, description string) (*Snapshot, error) {
 	e.logger.Info("creating infrastructure snapshot", zap.String("description", description))
 
 	snapshot := &Snapshot{
@@ -71,17 +71,17 @@ func (e *Engine) CreateSnapshot(ctx context.Context, description string) (*Snaps
 }
 
 // GenerateRecoveryPlan creates a recovery plan for a given remediation.
-func (e *Engine) GenerateRecoveryPlan(ctx context.Context, snapshotID, remediationID string) (*RecoveryPlan, error) {
+func (e *Engine) GenerateRecoveryPlan(_ context.Context, snapshotID, remediationID string) (*Plan, error) {
 	e.logger.Info("generating recovery plan",
 		zap.String("snapshot_id", snapshotID),
 		zap.String("remediation_id", remediationID),
 	)
 
-	plan := &RecoveryPlan{
+	plan := &Plan{
 		ID:            fmt.Sprintf("rec-%d", time.Now().UnixNano()),
 		SnapshotID:    snapshotID,
 		RemediationID: remediationID,
-		Steps: []RecoveryStep{
+		Steps: []Step{
 			{Order: 1, Action: "restore_state", Description: "Restore Terraform state from snapshot"},
 			{Order: 2, Action: "apply_terraform", Description: "Apply restored state to revert changes"},
 			{Order: 3, Action: "verify_resource", Description: "Verify resources match pre-change state"},
@@ -95,7 +95,7 @@ func (e *Engine) GenerateRecoveryPlan(ctx context.Context, snapshotID, remediati
 }
 
 // ExecuteRecovery runs a recovery plan to restore infrastructure to a previous state.
-func (e *Engine) ExecuteRecovery(ctx context.Context, plan *RecoveryPlan) error {
+func (e *Engine) ExecuteRecovery(_ context.Context, plan *Plan) error {
 	e.logger.Info("executing recovery plan",
 		zap.String("plan_id", plan.ID),
 		zap.Int("steps", len(plan.Steps)),
@@ -113,16 +113,16 @@ func (e *Engine) ExecuteRecovery(ctx context.Context, plan *RecoveryPlan) error 
 }
 
 // ListSnapshots returns available infrastructure snapshots.
-func (e *Engine) ListSnapshots(ctx context.Context) ([]*Snapshot, error) {
+func (e *Engine) ListSnapshots(_ context.Context) ([]*Snapshot, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
 // GetSnapshot retrieves a specific snapshot.
-func (e *Engine) GetSnapshot(ctx context.Context, id string) (*Snapshot, error) {
+func (e *Engine) GetSnapshot(_ context.Context, _ string) (*Snapshot, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
 // DeleteSnapshot removes a snapshot (with audit logging).
-func (e *Engine) DeleteSnapshot(ctx context.Context, id string) error {
+func (e *Engine) DeleteSnapshot(_ context.Context, _ string) error {
 	return fmt.Errorf("not yet implemented")
 }

@@ -20,7 +20,7 @@ func (r *Renderer) Failure(format string, args ...any) {
 	sym := r.Symbols().Failure
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.err, "%s %s\n", r.Apply(StyleError, sym), fmt.Sprintf(format, args...))
+	_, _ = fmt.Fprintf(r.err, "%s %s\n", r.Apply(StyleError, sym), fmt.Sprintf(format, args...))
 }
 
 // Warn reports a condition that did not stop the command.
@@ -40,7 +40,7 @@ func (r *Renderer) Detail(format string, args ...any) {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.err, "  %s\n", r.Apply(StyleMuted, fmt.Sprintf(format, args...)))
+	_, _ = fmt.Fprintf(r.err, "  %s\n", r.Apply(StyleMuted, fmt.Sprintf(format, args...)))
 }
 
 // status is the shared implementation for the symbol-prefixed messages.
@@ -50,7 +50,7 @@ func (r *Renderer) status(style Style, symbol, format string, args ...any) {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.err, "%s %s\n", r.Apply(style, symbol), fmt.Sprintf(format, args...))
+	_, _ = fmt.Fprintf(r.err, "%s %s\n", r.Apply(style, symbol), fmt.Sprintf(format, args...))
 }
 
 // Heading writes a section heading to stdout, underlined to the width of the
@@ -59,7 +59,7 @@ func (r *Renderer) Heading(text string) {
 	sym := r.Symbols()
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.out, "\n%s\n%s\n", r.Apply(StyleHeading, text), r.Apply(StyleMuted, Repeat(sym.Horizontal, displayWidth(text))))
+	_, _ = fmt.Fprintf(r.out, "\n%s\n%s\n", r.Apply(StyleHeading, text), r.Apply(StyleMuted, Repeat(sym.Horizontal, displayWidth(text))))
 }
 
 // Panel draws a titled box around a block of text. It is reserved for content
@@ -74,8 +74,8 @@ func (r *Renderer) Panel(title string, lines []string, style Style) string {
 			inner = w
 		}
 	}
-	if max := r.width - 4; inner > max {
-		inner = max
+	if limit := r.width - 4; inner > limit {
+		inner = limit
 	}
 
 	var b strings.Builder
@@ -113,11 +113,11 @@ func (r *Renderer) KeyValue(pairs [][2]string) string {
 // Bar renders a horizontal meter for a 0..max value, used by the risk and
 // compliance score displays. The bar is drawn with block characters when the
 // terminal supports them and equals signs otherwise.
-func (r *Renderer) Bar(value, max float64, width int, style Style) string {
-	if max <= 0 || width <= 0 {
+func (r *Renderer) Bar(value, scale float64, width int, style Style) string {
+	if scale <= 0 || width <= 0 {
 		return ""
 	}
-	ratio := value / max
+	ratio := value / scale
 	if ratio < 0 {
 		ratio = 0
 	}

@@ -214,21 +214,21 @@ func (r *Renderer) IsInteractive() bool {
 func (r *Renderer) Printf(format string, args ...any) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.out, format, args...)
+	_, _ = fmt.Fprintf(r.out, format, args...)
 }
 
 // Println writes a result line to stdout.
 func (r *Renderer) Println(args ...any) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintln(r.out, args...)
+	_, _ = fmt.Fprintln(r.out, args...)
 }
 
 // Raw writes a pre-rendered block to stdout verbatim.
 func (r *Renderer) Raw(s string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprint(r.out, s)
+	_, _ = fmt.Fprint(r.out, s)
 }
 
 // Diagnosticf writes a formatted line to stderr, honouring quiet mode.
@@ -238,5 +238,5 @@ func (r *Renderer) Diagnosticf(format string, args ...any) {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.err, format, args...)
+	_, _ = fmt.Fprintf(r.err, format, args...)
 }

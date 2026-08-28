@@ -4,24 +4,32 @@ import (
 	"net/http"
 )
 
+// GraphHandler serves the /graph endpoints.
+//
+// This is a skeleton: the routes are registered but return no data.
 type GraphHandler struct{}
 
+// NewGraphHandler creates a GraphHandler.
 func NewGraphHandler() *GraphHandler {
 	return &GraphHandler{}
 }
 
-func (h *GraphHandler) GetFull(w http.ResponseWriter, r *http.Request) {
+// GetFull handles graph.
+func (h *GraphHandler) GetFull(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "full_graph"}, "", nil)
 }
 
-func (h *GraphHandler) GetNode(w http.ResponseWriter, r *http.Request) {
+// GetNode handles graph.
+func (h *GraphHandler) GetNode(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"node": "dummy"}, "", nil)
 }
 
-func (h *GraphHandler) BlastRadius(w http.ResponseWriter, r *http.Request) {
+// BlastRadius returns the blast radius for graph.
+func (h *GraphHandler) BlastRadius(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"radius": "calculated"}, "", nil)
 }
 
-func (h *GraphHandler) Query(w http.ResponseWriter, r *http.Request) {
+// Query queries graph.
+func (h *GraphHandler) Query(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, []string{}, "", nil)
 }

@@ -16,12 +16,14 @@ import (
 // Engine is the risk scoring engine that evaluates resources across
 // multiple risk dimensions and produces composite scores.
 type Engine struct {
-	weights RiskWeights
+	weights Weights
 	logger  *zap.Logger
 }
 
-// RiskWeights defines the relative importance of each risk category.
-type RiskWeights struct {
+// Weights defines the relative importance of each risk category.
+// Named Weights rather than RiskWeights because the package supplies the
+// "risk" half at every call site.
+type Weights struct {
 	Security    float64 `json:"security"    yaml:"security"`
 	Reliability float64 `json:"reliability" yaml:"reliability"`
 	Cost        float64 `json:"cost"        yaml:"cost"`
@@ -29,8 +31,8 @@ type RiskWeights struct {
 }
 
 // DefaultWeights returns the default risk scoring weights.
-func DefaultWeights() RiskWeights {
-	return RiskWeights{
+func DefaultWeights() Weights {
+	return Weights{
 		Security:    0.35,
 		Reliability: 0.30,
 		Cost:        0.15,
@@ -39,7 +41,7 @@ func DefaultWeights() RiskWeights {
 }
 
 // NewEngine creates a new risk scoring engine with the given weights.
-func NewEngine(weights RiskWeights, logger *zap.Logger) *Engine {
+func NewEngine(weights Weights, logger *zap.Logger) *Engine {
 	return &Engine{
 		weights: weights,
 		logger:  logger,
@@ -47,28 +49,29 @@ func NewEngine(weights RiskWeights, logger *zap.Logger) *Engine {
 }
 
 // Assess performs a full risk assessment on a resource and returns a composite score.
-func (e *Engine) Assess(ctx context.Context, resource *types.Resource) (*types.RiskScore, error) {
+func (e *Engine) Assess(_ context.Context, resource *types.Resource) (*types.RiskScore, error) {
 	e.logger.Debug("assessing risk",
 		zap.String("resource_id", resource.ID),
 		zap.String("type", resource.Type),
 	)
 
-	var factors []types.RiskFactor
-
 	// Security assessment
 	secScore, secFactors := e.assessSecurity(resource)
-	factors = append(factors, secFactors...)
 
 	// Reliability assessment
 	relScore, relFactors := e.assessReliability(resource)
-	factors = append(factors, relFactors...)
 
 	// Cost assessment
 	costScore, costFactors := e.assessCost(resource)
-	factors = append(factors, costFactors...)
 
 	// Compliance assessment
 	compScore, compFactors := e.assessCompliance(resource)
+
+	factors := make([]types.RiskFactor, 0,
+		len(secFactors)+len(relFactors)+len(costFactors)+len(compFactors))
+	factors = append(factors, secFactors...)
+	factors = append(factors, relFactors...)
+	factors = append(factors, costFactors...)
 	factors = append(factors, compFactors...)
 
 	// Calculate composite score

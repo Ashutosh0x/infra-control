@@ -1,3 +1,4 @@
+// Package redis provides caching, distributed locks, and pub/sub over Redis.
 package redis
 
 import (

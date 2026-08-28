@@ -1,3 +1,4 @@
+// Package types defines the shared domain types used across infra-control.
 package types
 
 import (
@@ -7,6 +8,7 @@ import (
 // AuditAction defines the operation performed.
 type AuditAction string
 
+// Audit actions, one per kind of operation the system records.
 const (
 	AuditActionCreate  AuditAction = "create"
 	AuditActionRead    AuditAction = "read"

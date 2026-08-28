@@ -58,7 +58,7 @@ Examples:
 
   # Output as JSON for scripting
   infractl discover --provider aws -o json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl discover")
 	},
 }
@@ -67,7 +67,7 @@ var discoverSummaryCmd = &cobra.Command{
 	Use:   "summary",
 	Short: "Show discovery summary across all providers",
 	Long:  `Display a summary of discovered resources grouped by provider, type, region, and management status.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl discover")
 	},
 }
@@ -76,7 +76,7 @@ var discoverDiffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "Show differences between last two discovery runs",
 	Long:  `Compare the results of the current discovery with the previous run and show added, removed, and modified resources.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl discover")
 	},
 }
@@ -89,7 +89,7 @@ var discoverExportCmd = &cobra.Command{
 Examples:
   infractl discover export --format csv > inventory.csv
   infractl discover export --format tf-import > imports.tf`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl discover")
 	},
 }

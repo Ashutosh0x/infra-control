@@ -7,6 +7,7 @@ import (
 // PolicyType defines the nature of the policy.
 type PolicyType string
 
+// Policy types, grouping policies by the concern they cover.
 const (
 	PolicyTypeSecurity    PolicyType = "security"
 	PolicyTypeCost        PolicyType = "cost"
@@ -21,6 +22,7 @@ func (p PolicyType) String() string { return string(p) }
 // PolicySeverity indicates the critical level of the policy.
 type PolicySeverity string
 
+// Policy severities, describing how a violation should be treated.
 const (
 	PolicySeverityError   PolicySeverity = "error"
 	PolicySeverityWarning PolicySeverity = "warning"
@@ -33,6 +35,7 @@ func (p PolicySeverity) String() string { return string(p) }
 // PolicyEnforcement defines how the policy should be enforced.
 type PolicyEnforcement string
 
+// Policy enforcement modes, from reporting only through to blocking.
 const (
 	PolicyEnforcementAdvisory      PolicyEnforcement = "advisory"
 	PolicyEnforcementSoftMandatory PolicyEnforcement = "soft_mandatory"

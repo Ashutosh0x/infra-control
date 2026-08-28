@@ -7,6 +7,7 @@ import (
 // RemediationStatus reflects the lifecycle state of a remediation plan.
 type RemediationStatus string
 
+// Remediation statuses, tracking a plan through its lifecycle.
 const (
 	RemediationStatusProposed         RemediationStatus = "proposed"
 	RemediationStatusValidating       RemediationStatus = "validating"
@@ -25,6 +26,7 @@ func (r RemediationStatus) String() string { return string(r) }
 // RemediationRisk categorizes the risk level associated with applying a remediation.
 type RemediationRisk string
 
+// Remediation risk bands, gating which plans may auto-apply.
 const (
 	RemediationRiskLow      RemediationRisk = "low"
 	RemediationRiskMedium   RemediationRisk = "medium"

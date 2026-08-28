@@ -22,30 +22,37 @@ func NewPolicyStore(db *DB, logger *zap.Logger) *PolicyStore {
 	}
 }
 
-func (s *PolicyStore) Create(ctx context.Context, policy *types.Policy) error {
+// Create inserts a new policy.
+func (s *PolicyStore) Create(_ context.Context, _ *types.Policy) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *PolicyStore) Get(ctx context.Context, id string) (*types.Policy, error) {
+// Get returns the policy.
+func (s *PolicyStore) Get(_ context.Context, _ string) (*types.Policy, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *PolicyStore) List(ctx context.Context) ([]*types.Policy, error) {
+// List returns policy.
+func (s *PolicyStore) List(_ context.Context) ([]*types.Policy, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *PolicyStore) Update(ctx context.Context, policy *types.Policy) error {
+// Update rewrites the policy.
+func (s *PolicyStore) Update(_ context.Context, _ *types.Policy) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *PolicyStore) Delete(ctx context.Context, id string) error {
+// Delete removes the policy.
+func (s *PolicyStore) Delete(_ context.Context, _ string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *PolicyStore) GetByType(ctx context.Context, policyType types.PolicyType) ([]*types.Policy, error) {
+// GetByType returns policies of a given type policy.
+func (s *PolicyStore) GetByType(_ context.Context, _ types.PolicyType) ([]*types.Policy, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *PolicyStore) GetEnabled(ctx context.Context) ([]*types.Policy, error) {
+// GetEnabled returns the enabled policies policy.
+func (s *PolicyStore) GetEnabled(_ context.Context) ([]*types.Policy, error) {
 	return nil, fmt.Errorf("not implemented")
 }

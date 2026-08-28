@@ -81,7 +81,7 @@ Use --fail-on in CI to reject a plan automatically.`,
 	RunE: runPlanAnalyse,
 }
 
-func runPlanAnalyse(cmd *cobra.Command, args []string) error {
+func runPlanAnalyse(_ *cobra.Command, args []string) error {
 	path := args[0]
 	if err := requireFile(path, "plan file"); err != nil {
 		return err

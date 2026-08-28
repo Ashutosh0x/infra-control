@@ -295,7 +295,7 @@ func (g *Graph) TopologicalSort() ([]*types.Node, error) {
 }
 
 // Query traverses the graph from a starting node based on query parameters.
-func (g *Graph) Query(ctx context.Context, query types.GraphQuery) ([]*types.Node, []*types.Edge, error) {
+func (g *Graph) Query(_ context.Context, query types.GraphQuery) ([]*types.Node, []*types.Edge, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 

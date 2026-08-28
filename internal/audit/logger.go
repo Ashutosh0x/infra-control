@@ -32,7 +32,7 @@ func NewLogger(logger *zap.Logger) *Logger {
 }
 
 // Log records an audit event with a cryptographic hash chain link.
-func (l *Logger) Log(ctx context.Context, entry *types.AuditEntry) error {
+func (l *Logger) Log(_ context.Context, entry *types.AuditEntry) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -85,7 +85,7 @@ func NewIdentityResolver(logger *zap.Logger) *IdentityResolver {
 }
 
 // Resolve maps a cloud IAM principal to a human identity.
-func (r *IdentityResolver) Resolve(ctx context.Context, principal string) (*types.UserIdentity, error) {
+func (r *IdentityResolver) Resolve(_ context.Context, principal string) (*types.UserIdentity, error) {
 	r.logger.Debug("resolving identity", zap.String("principal", principal))
 	// Implementation will:
 	// 1. Parse IAM principal (ARN, email, service account)

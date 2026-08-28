@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -17,9 +18,16 @@ type Response struct {
 func WriteJSON(w http.ResponseWriter, status int, data any, err string, meta map[string]string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(Response{
+
+	// The status line and headers are already on the wire, so a failed encode
+	// cannot be turned into an error response. Logging it is the only thing
+	// left that helps, and it distinguishes a client that hung up from a
+	// payload this handler cannot serialise.
+	if encodeErr := json.NewEncoder(w).Encode(Response{
 		Data:  data,
 		Error: err,
 		Meta:  meta,
-	})
+	}); encodeErr != nil {
+		log.Printf("write json response: %v", encodeErr)
+	}
 }

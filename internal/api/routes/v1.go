@@ -1,3 +1,4 @@
+// Package routes registers the v1 HTTP API routes.
 package routes
 
 import (

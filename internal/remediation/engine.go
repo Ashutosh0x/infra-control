@@ -24,7 +24,7 @@ func NewEngine(logger *zap.Logger) *Engine {
 
 // ProposeRemediation creates a remediation plan for a drift event.
 // This is the entry point for the remediation pipeline.
-func (e *Engine) ProposeRemediation(ctx context.Context, req RemediationRequest) (*types.RemediationPlan, error) {
+func (e *Engine) ProposeRemediation(_ context.Context, req Request) (*types.RemediationPlan, error) {
 	e.logger.Info("proposing remediation",
 		zap.String("drift_event_id", req.DriftEventID),
 		zap.String("resource_id", req.ResourceID),
@@ -45,7 +45,7 @@ func (e *Engine) ProposeRemediation(ctx context.Context, req RemediationRequest)
 }
 
 // ValidatePlan validates a remediation plan against policies and risk thresholds.
-func (e *Engine) ValidatePlan(ctx context.Context, plan *types.RemediationPlan) (*ValidationResult, error) {
+func (e *Engine) ValidatePlan(_ context.Context, plan *types.RemediationPlan) (*ValidationResult, error) {
 	e.logger.Info("validating remediation plan",
 		zap.String("plan_id", plan.ID),
 	)
@@ -131,7 +131,7 @@ func (e *Engine) DetermineApproval(plan *types.RemediationPlan) ApprovalDecision
 }
 
 // Execute runs the remediation plan (terraform apply).
-func (e *Engine) Execute(ctx context.Context, plan *types.RemediationPlan) error {
+func (e *Engine) Execute(_ context.Context, plan *types.RemediationPlan) error {
 	e.logger.Info("executing remediation",
 		zap.String("plan_id", plan.ID),
 	)
@@ -152,7 +152,7 @@ func (e *Engine) Execute(ctx context.Context, plan *types.RemediationPlan) error
 }
 
 // Verify checks that the remediation was successful by re-scanning for drift.
-func (e *Engine) Verify(ctx context.Context, plan *types.RemediationPlan) (*VerificationResult, error) {
+func (e *Engine) Verify(_ context.Context, plan *types.RemediationPlan) (*VerificationResult, error) {
 	e.logger.Info("verifying remediation",
 		zap.String("plan_id", plan.ID),
 	)
@@ -172,7 +172,7 @@ func (e *Engine) Verify(ctx context.Context, plan *types.RemediationPlan) (*Veri
 }
 
 // Rollback reverts a failed remediation using the pre-change snapshot.
-func (e *Engine) Rollback(ctx context.Context, plan *types.RemediationPlan) error {
+func (e *Engine) Rollback(_ context.Context, plan *types.RemediationPlan) error {
 	e.logger.Info("rolling back remediation",
 		zap.String("plan_id", plan.ID),
 	)
@@ -187,8 +187,8 @@ func (e *Engine) Rollback(ctx context.Context, plan *types.RemediationPlan) erro
 	return fmt.Errorf("not yet implemented")
 }
 
-// RemediationRequest is the input for proposing a remediation.
-type RemediationRequest struct {
+// Request is the input for proposing a remediation.
+type Request struct {
 	DriftEventID  string `json:"drift_event_id"`
 	ResourceID    string `json:"resource_id"`
 	Description   string `json:"description"`
@@ -214,6 +214,7 @@ type ValidationCheck struct {
 // ApprovalAction represents the approval decision.
 type ApprovalAction string
 
+// Approval actions, deciding how a remediation plan proceeds.
 const (
 	ApprovalActionAutoApply       ApprovalAction = "auto_apply"
 	ApprovalActionRequestApproval ApprovalAction = "request_approval"

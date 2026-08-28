@@ -17,7 +17,6 @@ import (
 var (
 	driftStatePath  string
 	driftLivePath   string
-	driftSeverity   string
 	driftMinSeverit string
 	driftFailOn     string
 	driftShowDiff   bool
@@ -120,7 +119,7 @@ type driftReport struct {
 	CountsBySeverit map[string]int `json:"counts_by_severity"`
 }
 
-func runDriftScan(cmd *cobra.Command, args []string) error {
+func runDriftScan(_ *cobra.Command, _ []string) error {
 	if err := requireFile(driftStatePath, "state file (--state)"); err != nil {
 		return err
 	}
@@ -216,7 +215,7 @@ func readLiveSnapshot(path string) (*liveSnapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open live snapshot %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var snapshot liveSnapshot
 	dec := json.NewDecoder(f)

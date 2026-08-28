@@ -29,7 +29,7 @@ func NewEngine(logger *zap.Logger) *Engine {
 }
 
 // LoadPolicies loads policies from the configured policy directory and built-in library.
-func (e *Engine) LoadPolicies(ctx context.Context, dir string) error {
+func (e *Engine) LoadPolicies(_ context.Context, dir string) error {
 	e.logger.Info("loading policies", zap.String("directory", dir))
 	// Implementation will:
 	// 1. Load built-in policies from embedded Rego files
@@ -108,7 +108,7 @@ func (e *Engine) EvaluateResources(ctx context.Context, resources []*types.Resou
 }
 
 // EvaluatePlan evaluates a Terraform plan against relevant policies.
-func (e *Engine) EvaluatePlan(ctx context.Context, planJSON []byte) (*types.PolicyEvaluationResponse, error) {
+func (e *Engine) EvaluatePlan(_ context.Context, _ []byte) (*types.PolicyEvaluationResponse, error) {
 	e.logger.Info("evaluating terraform plan against policies")
 	// Implementation will:
 	// 1. Parse the plan JSON
@@ -119,7 +119,7 @@ func (e *Engine) EvaluatePlan(ctx context.Context, planJSON []byte) (*types.Poli
 }
 
 // evaluatePolicy evaluates a single policy against resources using embedded OPA.
-func (e *Engine) evaluatePolicy(ctx context.Context, policy *types.Policy, resources []*types.Resource) (*types.PolicyResult, error) {
+func (e *Engine) evaluatePolicy(_ context.Context, policy *types.Policy, _ []*types.Resource) (*types.PolicyResult, error) {
 	// Implementation will use github.com/open-policy-agent/opa/rego
 	// to evaluate the policy's Rego code against the resources
 	result := &types.PolicyResult{

@@ -1,3 +1,5 @@
+// Package postgres provides PostgreSQL-backed persistence for resources,
+// drift events, policies, the dependency graph, and the audit trail.
 package postgres
 
 import (

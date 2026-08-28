@@ -41,7 +41,7 @@ Examples:
 var securityScanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Run security scan across infrastructure",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl security")
 	},
 }
@@ -49,7 +49,7 @@ var securityScanCmd = &cobra.Command{
 var securityPostureCmd = &cobra.Command{
 	Use:   "posture",
 	Short: "Show overall security posture score",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl security")
 	},
 }
@@ -57,7 +57,7 @@ var securityPostureCmd = &cobra.Command{
 var securityFindingsCmd = &cobra.Command{
 	Use:   "findings",
 	Short: "List security findings and misconfigurations",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl security")
 	},
 }
@@ -65,7 +65,7 @@ var securityFindingsCmd = &cobra.Command{
 var securityTrendsCmd = &cobra.Command{
 	Use:   "trends",
 	Short: "Show security posture trends over time",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl security")
 	},
 }
@@ -73,7 +73,7 @@ var securityTrendsCmd = &cobra.Command{
 var securityBenchmarkCmd = &cobra.Command{
 	Use:   "benchmark",
 	Short: "Run CIS benchmarks against infrastructure",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl security")
 	},
 }

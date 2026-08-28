@@ -7,6 +7,7 @@ import (
 // RiskCategory represents the domain of a given risk.
 type RiskCategory string
 
+// Risk categories, one per scored dimension.
 const (
 	RiskCategorySecurity    RiskCategory = "security"
 	RiskCategoryReliability RiskCategory = "reliability"
@@ -20,6 +21,7 @@ func (r RiskCategory) String() string { return string(r) }
 // RiskLevel categorizes the severity of a risk.
 type RiskLevel string
 
+// Risk levels, ordered from most to least severe.
 const (
 	RiskLevelCritical   RiskLevel = "critical"
 	RiskLevelHigh       RiskLevel = "high"

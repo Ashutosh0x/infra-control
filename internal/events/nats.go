@@ -24,7 +24,7 @@ func NewNATSBus(cfg config.EventsConfig) (Bus, error) {
 		nats.Name(cfg.ClientID),
 		nats.MaxReconnects(cfg.MaxReconnects),
 		nats.ReconnectWait(cfg.ReconnectWait),
-		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
+		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
 			log.Printf("Disconnected from NATS: %v", err)
 		}),
 		nats.ReconnectHandler(func(nc *nats.Conn) {
@@ -40,7 +40,7 @@ func NewNATSBus(cfg config.EventsConfig) (Bus, error) {
 	return &natsBus{conn: conn}, nil
 }
 
-func (b *natsBus) Publish(ctx context.Context, subject string, event types.Event) error {
+func (b *natsBus) Publish(_ context.Context, subject string, event types.Event) error {
 	data, err := SerializeEvent(event)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (b *natsBus) Publish(ctx context.Context, subject string, event types.Event
 	return b.conn.Publish(subject, data)
 }
 
-func (b *natsBus) Subscribe(ctx context.Context, subject string, handler types.EventHandler) (Subscription, error) {
+func (b *natsBus) Subscribe(_ context.Context, subject string, handler types.EventHandler) (Subscription, error) {
 	sub, err := b.conn.Subscribe(subject, func(msg *nats.Msg) {
 		event, err := DeserializeEvent(msg.Data)
 		if err != nil {
@@ -69,7 +69,7 @@ func (b *natsBus) Subscribe(ctx context.Context, subject string, handler types.E
 	return &natsSubscription{sub: sub}, nil
 }
 
-func (b *natsBus) SubscribeQueue(ctx context.Context, subject string, queue string, handler types.EventHandler) (Subscription, error) {
+func (b *natsBus) SubscribeQueue(_ context.Context, subject string, queue string, handler types.EventHandler) (Subscription, error) {
 	sub, err := b.conn.QueueSubscribe(subject, queue, func(msg *nats.Msg) {
 		event, err := DeserializeEvent(msg.Data)
 		if err != nil {

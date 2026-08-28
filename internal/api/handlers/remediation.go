@@ -4,28 +4,37 @@ import (
 	"net/http"
 )
 
+// RemediationHandler serves the /remediation endpoints.
+//
+// This is a skeleton: the routes are registered but return no data.
 type RemediationHandler struct{}
 
+// NewRemediationHandler creates a RemediationHandler.
 func NewRemediationHandler() *RemediationHandler {
 	return &RemediationHandler{}
 }
 
-func (h *RemediationHandler) List(w http.ResponseWriter, r *http.Request) {
+// List lists remediation.
+func (h *RemediationHandler) List(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, []string{}, "", nil)
 }
 
-func (h *RemediationHandler) Get(w http.ResponseWriter, r *http.Request) {
+// Get returns remediation.
+func (h *RemediationHandler) Get(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"id": "dummy"}, "", nil)
 }
 
-func (h *RemediationHandler) Approve(w http.ResponseWriter, r *http.Request) {
+// Approve approves remediation.
+func (h *RemediationHandler) Approve(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "approved"}, "", nil)
 }
 
-func (h *RemediationHandler) Reject(w http.ResponseWriter, r *http.Request) {
+// Reject rejects remediation.
+func (h *RemediationHandler) Reject(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "rejected"}, "", nil)
 }
 
-func (h *RemediationHandler) Execute(w http.ResponseWriter, r *http.Request) {
+// Execute executes remediation.
+func (h *RemediationHandler) Execute(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusAccepted, map[string]string{"status": "executing"}, "", nil)
 }

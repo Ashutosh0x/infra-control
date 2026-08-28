@@ -1,10 +1,9 @@
 package types
 
-import ()
-
 // NodeType represents the kind of graph node.
 type NodeType string
 
+// Node types, describing what an entity in the graph represents.
 const (
 	NodeTypeResource  NodeType = "resource"
 	NodeTypeModule    NodeType = "module"
@@ -19,6 +18,7 @@ func (n NodeType) String() string { return string(n) }
 // EdgeType represents the relationship between nodes.
 type EdgeType string
 
+// Edge types, describing the relationship between two nodes.
 const (
 	EdgeTypeDependsOn  EdgeType = "depends_on"
 	EdgeTypeReferences EdgeType = "references"

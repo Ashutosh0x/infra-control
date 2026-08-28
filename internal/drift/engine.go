@@ -70,7 +70,7 @@ func (e *Engine) Stop() error {
 }
 
 // RunScan performs a single drift detection scan.
-func (e *Engine) runScan(ctx context.Context) error {
+func (e *Engine) runScan(_ context.Context) error {
 	e.logger.Info("running drift detection scan")
 	// 1. Get all Terraform state resources
 	// 2. Get all live cloud resources
@@ -83,7 +83,7 @@ func (e *Engine) runScan(ctx context.Context) error {
 }
 
 // Scan performs an on-demand drift scan and returns detected events.
-func (e *Engine) Scan(ctx context.Context) ([]types.DriftEvent, error) {
+func (e *Engine) Scan(_ context.Context) ([]types.DriftEvent, error) {
 	e.logger.Info("performing on-demand drift scan")
 	return nil, fmt.Errorf("not yet implemented")
 }
@@ -302,7 +302,7 @@ func NewAttributor(logger *zap.Logger) *Attributor {
 }
 
 // Attribute enriches a drift event with identity attribution data.
-func (a *Attributor) Attribute(ctx context.Context, event *types.DriftEvent) error {
+func (a *Attributor) Attribute(_ context.Context, event *types.DriftEvent) error {
 	a.logger.Debug("attributing drift event",
 		zap.String("resource_id", event.ResourceID),
 	)

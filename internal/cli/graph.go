@@ -39,7 +39,7 @@ var graphStatsCmd = &cobra.Command{
 	Example: `  infractl graph stats --state terraform.tfstate
   infractl graph stats --state terraform.tfstate -o json`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		g, err := loadGraph()
 		if err != nil {
 			return err
@@ -186,7 +186,7 @@ This is the inverse of blast-radius: it walks upstream, showing what must exist
 before this resource can be created.`,
 	Example: `  infractl graph deps aws_instance.web --state terraform.tfstate`,
 	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		address := args[0]
 
 		g, err := loadGraph()
@@ -234,7 +234,7 @@ var graphExportCmd = &cobra.Command{
 	Example: `  infractl graph export --state terraform.tfstate --format dot > graph.dot
   infractl graph export --state terraform.tfstate --format mermaid`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		g, err := loadGraph()
 		if err != nil {
 			return err

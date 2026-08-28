@@ -21,8 +21,6 @@ linters:
       enable:
         # Replaces the deprecated check-shadowing option.
         - shadow
-    misspell:
-      locale: UK
 
   exclusions:
     rules:

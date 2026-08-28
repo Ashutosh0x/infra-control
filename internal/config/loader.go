@@ -56,7 +56,7 @@ func Watch(configPath string, onChange func(Config)) error {
 	}
 
 	v.WatchConfig()
-	v.OnConfigChange(func(e fsnotify.Event) {
+	v.OnConfigChange(func(_ fsnotify.Event) {
 		var cfg Config
 		if err := v.Unmarshal(&cfg); err == nil {
 			onChange(cfg)

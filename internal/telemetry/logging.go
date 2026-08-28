@@ -1,3 +1,4 @@
+// Package telemetry provides logging, metrics, and tracing setup.
 package telemetry
 
 import (
@@ -28,9 +29,10 @@ func InitLogger(cfg config.TelemetryConfig) (*zap.Logger, error) {
 	}
 
 	// Override format (json or console)
-	if cfg.Logging.Format == "json" {
+	switch cfg.Logging.Format {
+	case "json":
 		logConfig.Encoding = "json"
-	} else if cfg.Logging.Format == "console" {
+	case "console":
 		logConfig.Encoding = "console"
 	}
 

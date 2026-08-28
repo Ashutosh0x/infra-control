@@ -1,3 +1,4 @@
+// Package config defines the configuration schema and its defaults.
 package config
 
 import "time"
@@ -71,6 +72,7 @@ type CloudConfig struct {
 	Kubernetes KubernetesConfig `yaml:"kubernetes" mapstructure:"kubernetes"`
 }
 
+// AWSConfig holds the AWS account, region, and credential settings.
 type AWSConfig struct {
 	Enabled       bool     `yaml:"enabled"         mapstructure:"enabled"`
 	Region        string   `yaml:"region"          mapstructure:"region"`
@@ -79,12 +81,14 @@ type AWSConfig struct {
 	Regions       []string `yaml:"regions"         mapstructure:"regions"`
 }
 
+// GCPConfig holds the GCP project, region, and credential settings.
 type GCPConfig struct {
 	Enabled   bool     `yaml:"enabled"    mapstructure:"enabled"`
 	ProjectID string   `yaml:"project_id" mapstructure:"project_id"`
 	Projects  []string `yaml:"projects"   mapstructure:"projects"`
 }
 
+// AzureConfig holds the Azure subscription, tenant, and credential settings.
 type AzureConfig struct {
 	Enabled        bool     `yaml:"enabled"         mapstructure:"enabled"`
 	SubscriptionID string   `yaml:"subscription_id" mapstructure:"subscription_id"`
@@ -92,6 +96,7 @@ type AzureConfig struct {
 	Subscriptions  []string `yaml:"subscriptions"   mapstructure:"subscriptions"`
 }
 
+// KubernetesConfig holds the kubeconfig path, context, and namespace.
 type KubernetesConfig struct {
 	Enabled    bool     `yaml:"enabled"    mapstructure:"enabled"`
 	Kubeconfig string   `yaml:"kubeconfig" mapstructure:"kubeconfig"`
@@ -160,18 +165,21 @@ type TelemetryConfig struct {
 	Logging LoggingConfig `yaml:"logging" mapstructure:"logging"`
 }
 
+// MetricsConfig configures the Prometheus metrics endpoint.
 type MetricsConfig struct {
 	Enabled bool   `yaml:"enabled" mapstructure:"enabled"`
 	Port    int    `yaml:"port"    mapstructure:"port"`
 	Path    string `yaml:"path"    mapstructure:"path"`
 }
 
+// TracingConfig configures the OpenTelemetry trace exporter.
 type TracingConfig struct {
 	Enabled    bool    `yaml:"enabled"     mapstructure:"enabled"`
 	Endpoint   string  `yaml:"endpoint"    mapstructure:"endpoint"`
 	SampleRate float64 `yaml:"sample_rate" mapstructure:"sample_rate"`
 }
 
+// LoggingConfig configures the log level, format, and destination.
 type LoggingConfig struct {
 	Level       string   `yaml:"level"        mapstructure:"level"`
 	Format      string   `yaml:"format"       mapstructure:"format"`

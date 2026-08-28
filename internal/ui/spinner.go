@@ -63,7 +63,7 @@ func (r *Renderer) Spin(format string, args ...any) *Spinner {
 		// Non-interactive: announce once, no animation.
 		if !r.quiet {
 			r.mu.Lock()
-			fmt.Fprintf(r.err, "%s %s\n", r.Symbols().Pending, message)
+			_, _ = fmt.Fprintf(r.err, "%s %s\n", r.Symbols().Pending, message)
 			r.mu.Unlock()
 		}
 		close(s.doneCh)
@@ -107,7 +107,7 @@ func (s *Spinner) draw(glyph string) {
 	defer s.r.mu.Unlock()
 	// Carriage return, write, then clear to end of line. Clearing after the
 	// write rather than before avoids a visible flicker on slow terminals.
-	fmt.Fprintf(s.r.err, "\r%s\x1b[K", line)
+	_, _ = fmt.Fprintf(s.r.err, "\r%s\x1b[K", line)
 	s.lastWidth = displayWidth(line)
 }
 
@@ -118,7 +118,7 @@ func (s *Spinner) erase() {
 	}
 	s.r.mu.Lock()
 	defer s.r.mu.Unlock()
-	fmt.Fprintf(s.r.err, "\r%s\r", strings.Repeat(" ", s.lastWidth))
+	_, _ = fmt.Fprintf(s.r.err, "\r%s\r", strings.Repeat(" ", s.lastWidth))
 }
 
 // Update changes the message shown alongside the animation.
@@ -229,7 +229,7 @@ func (p *Progress) render(current, total int) {
 		p.mu.Unlock()
 		if report {
 			p.r.mu.Lock()
-			fmt.Fprintf(p.r.err, "%s %d%% (%d/%d)\n", p.label, percent, current, total)
+			_, _ = fmt.Fprintf(p.r.err, "%s %d%% (%d/%d)\n", p.label, percent, current, total)
 			p.r.mu.Unlock()
 		}
 		return
@@ -237,7 +237,7 @@ func (p *Progress) render(current, total int) {
 
 	bar := p.r.Bar(float64(current), float64(total), p.width, StyleInfo)
 	p.r.mu.Lock()
-	fmt.Fprintf(p.r.err, "\r%s %s %3d%% (%d/%d)\x1b[K", p.label, bar, percent, current, total)
+	_, _ = fmt.Fprintf(p.r.err, "\r%s %s %3d%% (%d/%d)\x1b[K", p.label, bar, percent, current, total)
 	p.r.mu.Unlock()
 }
 
@@ -245,7 +245,7 @@ func (p *Progress) render(current, total int) {
 func (p *Progress) Done() {
 	if p.animated && !p.r.quiet {
 		p.r.mu.Lock()
-		fmt.Fprint(p.r.err, "\r\x1b[K")
+		_, _ = fmt.Fprint(p.r.err, "\r\x1b[K")
 		p.r.mu.Unlock()
 	}
 }

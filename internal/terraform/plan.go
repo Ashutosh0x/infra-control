@@ -58,7 +58,7 @@ func ParsePlanFile(path string) (*PlanSummary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open plan file %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	plan, err := ParsePlan(f)
 	if err != nil {

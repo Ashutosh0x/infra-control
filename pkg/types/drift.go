@@ -7,6 +7,7 @@ import (
 // DriftType represents the type of drift that occurred.
 type DriftType string
 
+// Drift types, describing how live infrastructure diverged from state.
 const (
 	DriftTypeAdded     DriftType = "added"
 	DriftTypeModified  DriftType = "modified"
@@ -20,6 +21,7 @@ func (d DriftType) String() string { return string(d) }
 // DriftClassification categorizes the drift intent.
 type DriftClassification string
 
+// Drift classifications, describing the likely intent behind a change.
 const (
 	DriftClassificationIntentional DriftClassification = "intentional"
 	DriftClassificationAccidental  DriftClassification = "accidental"
@@ -33,6 +35,7 @@ func (d DriftClassification) String() string { return string(d) }
 // DriftSeverity denotes the criticality of the drift event.
 type DriftSeverity string
 
+// Drift severities, ordered from most to least urgent.
 const (
 	DriftSeverityCritical DriftSeverity = "critical"
 	DriftSeverityHigh     DriftSeverity = "high"

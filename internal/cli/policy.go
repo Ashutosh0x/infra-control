@@ -27,7 +27,7 @@ var policyListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List all registered policies",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -36,7 +36,7 @@ var policyEvaluateCmd = &cobra.Command{
 	Use:     "evaluate",
 	Aliases: []string{"eval", "check"},
 	Short:   "Evaluate policies against current infrastructure state",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -45,7 +45,7 @@ var policyTestCmd = &cobra.Command{
 	Use:   "test <path>",
 	Short: "Test policy files with fixtures",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -54,7 +54,7 @@ var policyAddCmd = &cobra.Command{
 	Use:   "add <path>",
 	Short: "Add a custom policy from a Rego file",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -63,7 +63,7 @@ var policyShowCmd = &cobra.Command{
 	Use:   "show <id>",
 	Short: "Show policy details including Rego source code",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -73,7 +73,7 @@ var policyDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a custom policy",
 	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -82,7 +82,7 @@ var policyEnableCmd = &cobra.Command{
 	Use:   "enable <id>",
 	Short: "Enable a policy",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -91,7 +91,7 @@ var policyDisableCmd = &cobra.Command{
 	Use:   "disable <id>",
 	Short: "Disable a policy without deleting it",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -108,7 +108,7 @@ Examples:
   infractl policy generate "No security groups should allow ingress from 0.0.0.0/0"
   infractl policy generate "All RDS instances must have multi-AZ enabled in production"`,
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }
@@ -116,7 +116,7 @@ Examples:
 var policyViolationsCmd = &cobra.Command{
 	Use:   "violations",
 	Short: "List current policy violations across infrastructure",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl policy")
 	},
 }

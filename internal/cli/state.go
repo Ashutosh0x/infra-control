@@ -52,7 +52,7 @@ it into Terraform.`,
 	Example: `  infractl state inspect terraform.tfstate
   infractl state inspect terraform.tfstate -o json`,
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		path := args[0]
 		if err := requireFile(path, "state file"); err != nil {
 			return err
@@ -129,7 +129,7 @@ Data sources are excluded: Terraform reads them but does not own them.`,
   infractl state list terraform.tfstate --type aws_s3_bucket
   infractl state list terraform.tfstate --provider aws -o name`,
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		path := args[0]
 		if err := requireFile(path, "state file"); err != nil {
 			return err
@@ -194,7 +194,7 @@ output as sensitive regardless.`,
 	Example: `  infractl state show terraform.tfstate aws_s3_bucket.assets
   infractl state show terraform.tfstate 'module.vpc.aws_subnet.private[0]'`,
 	Args: cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		path, address := args[0], args[1]
 		if err := requireFile(path, "state file"); err != nil {
 			return err

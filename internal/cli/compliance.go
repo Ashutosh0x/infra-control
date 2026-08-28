@@ -48,7 +48,7 @@ Examples:
 var complianceRunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Execute compliance checks against infrastructure",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl compliance")
 	},
 }
@@ -56,7 +56,7 @@ var complianceRunCmd = &cobra.Command{
 var complianceStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show compliance posture summary across all frameworks",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl compliance")
 	},
 }
@@ -64,7 +64,7 @@ var complianceStatusCmd = &cobra.Command{
 var complianceReportCmd = &cobra.Command{
 	Use:   "report",
 	Short: "Generate compliance report (HTML, PDF, JSON, CSV)",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl compliance")
 	},
 }
@@ -72,7 +72,7 @@ var complianceReportCmd = &cobra.Command{
 var complianceControlsCmd = &cobra.Command{
 	Use:   "controls",
 	Short: "List all controls for a compliance framework",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl compliance")
 	},
 }
@@ -80,7 +80,7 @@ var complianceControlsCmd = &cobra.Command{
 var complianceEvidenceCmd = &cobra.Command{
 	Use:   "evidence",
 	Short: "Export compliance evidence for auditors",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl compliance")
 	},
 }

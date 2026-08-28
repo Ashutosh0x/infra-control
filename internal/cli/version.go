@@ -17,7 +17,7 @@ Include this output when reporting a bug.`,
 	Example: `  infractl version
   infractl version -o json`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		info := version.Get()
 
 		table := ui.NewTable(

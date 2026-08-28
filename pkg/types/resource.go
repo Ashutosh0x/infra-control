@@ -7,6 +7,7 @@ import (
 // CloudProvider represents a supported cloud provider.
 type CloudProvider string
 
+// Supported cloud providers.
 const (
 	CloudProviderAWS        CloudProvider = "aws"
 	CloudProviderGCP        CloudProvider = "gcp"
@@ -22,6 +23,7 @@ func (c CloudProvider) String() string {
 // ResourceState represents the current state of a resource.
 type ResourceState string
 
+// Resource lifecycle states.
 const (
 	ResourceStateActive  ResourceState = "active"
 	ResourceStateDeleted ResourceState = "deleted"

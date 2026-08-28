@@ -87,6 +87,7 @@ type PlanChange struct {
 // PlanAction represents the action Terraform will take on a resource.
 type PlanAction string
 
+// Plan actions Terraform may take on a resource.
 const (
 	PlanActionCreate  PlanAction = "create"
 	PlanActionUpdate  PlanAction = "update"
@@ -125,7 +126,7 @@ type PolicyResult struct {
 }
 
 // ParseState reads a Terraform state file and returns all managed resources.
-func (s *Service) ParseState(ctx context.Context, statePath string) ([]StateResource, error) {
+func (s *Service) ParseState(_ context.Context, statePath string) ([]StateResource, error) {
 	s.logger.Info("parsing terraform state", zap.String("path", statePath))
 
 	state, err := ParseStateFile(statePath)
@@ -143,7 +144,7 @@ func (s *Service) ParseState(ctx context.Context, statePath string) ([]StateReso
 }
 
 // GeneratePlan creates a Terraform plan for the given workspace.
-func (s *Service) GeneratePlan(ctx context.Context, workspace Workspace) (*PlanSummary, error) {
+func (s *Service) GeneratePlan(_ context.Context, workspace Workspace) (*PlanSummary, error) {
 	s.logger.Info("generating terraform plan",
 		zap.String("workspace", workspace.Name),
 		zap.String("path", workspace.Path),
@@ -153,14 +154,14 @@ func (s *Service) GeneratePlan(ctx context.Context, workspace Workspace) (*PlanS
 }
 
 // ValidatePlan validates a Terraform plan against policies and risk thresholds.
-func (s *Service) ValidatePlan(ctx context.Context, plan *PlanSummary) (*PlanValidation, error) {
+func (s *Service) ValidatePlan(_ context.Context, plan *PlanSummary) (*PlanValidation, error) {
 	s.logger.Info("validating terraform plan", zap.Int("changes", plan.TotalChanges))
 	// Implementation will evaluate policies and calculate blast radius
 	return nil, fmt.Errorf("not yet implemented")
 }
 
 // Apply executes a Terraform apply for the given workspace.
-func (s *Service) Apply(ctx context.Context, workspace Workspace) error {
+func (s *Service) Apply(_ context.Context, workspace Workspace) error {
 	s.logger.Info("applying terraform changes",
 		zap.String("workspace", workspace.Name),
 	)
@@ -169,7 +170,7 @@ func (s *Service) Apply(ctx context.Context, workspace Workspace) error {
 }
 
 // Refresh performs a Terraform refresh to sync state with real infrastructure.
-func (s *Service) Refresh(ctx context.Context, workspace Workspace) error {
+func (s *Service) Refresh(_ context.Context, workspace Workspace) error {
 	s.logger.Info("refreshing terraform state",
 		zap.String("workspace", workspace.Name),
 	)
@@ -177,12 +178,12 @@ func (s *Service) Refresh(ctx context.Context, workspace Workspace) error {
 }
 
 // ListWorkspaces returns all configured Terraform workspaces.
-func (s *Service) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
+func (s *Service) ListWorkspaces(_ context.Context) ([]Workspace, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
 // GetStateResources retrieves all resources from a workspace's Terraform state.
-func (s *Service) GetStateResources(ctx context.Context, workspace Workspace) ([]StateResource, error) {
+func (s *Service) GetStateResources(_ context.Context, _ Workspace) ([]StateResource, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 

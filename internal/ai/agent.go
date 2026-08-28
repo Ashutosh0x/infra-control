@@ -193,7 +193,7 @@ func (a *Agent) GeneratePolicy(ctx context.Context, description string) (*Policy
 }
 
 // ScoreConfidence evaluates the confidence level of an AI-generated remediation.
-func (a *Agent) ScoreConfidence(ctx context.Context, plan *RemediationPlan, blastRadius int) float64 {
+func (a *Agent) ScoreConfidence(_ context.Context, plan *RemediationPlan, blastRadius int) float64 {
 	confidence := 0.8 // Base confidence
 
 	// Reduce confidence for large blast radius

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ashutosh0x/infra-control/internal/ui"
 	"github.com/ashutosh0x/infra-control/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -109,7 +108,7 @@ Configuration precedence, highest first:
 	Version:           version.Version,
 	SilenceUsage:      true,
 	SilenceErrors:     true,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return initRuntime() },
+	PersistentPreRunE: func(_ *cobra.Command, _ []string) error { return initRuntime() },
 }
 
 // Execute runs the root command and translates the outcome into an exit status.
@@ -202,9 +201,4 @@ func init() {
 		&cobra.Group{ID: "platform", Title: "Control plane (requires a server):"},
 		&cobra.Group{ID: "system", Title: "Configuration and diagnostics:"},
 	)
-}
-
-// tableOrEmpty picks the message shown when a table has no rows.
-func tableOrEmpty(table *ui.Table, empty string) ui.View {
-	return ui.View{Table: table, Empty: empty}
 }

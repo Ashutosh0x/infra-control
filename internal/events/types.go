@@ -4,8 +4,11 @@ import (
 	"github.com/ashutosh0x/infra-control/pkg/types"
 )
 
-// Re-export event types from pkg/types for convenience within internal packages
+// Event is an alias for types.Event, re-exported so internal packages can use
+// the shared type without importing pkg/types directly.
 type Event = types.Event
+
+// EventHandler is an alias for types.EventHandler.
 type EventHandler = types.EventHandler
 
 // Internal specific event types can be defined here

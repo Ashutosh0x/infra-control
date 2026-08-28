@@ -44,6 +44,7 @@ type Provider interface {
 // ResourceEventType represents the type of resource change event.
 type ResourceEventType string
 
+// Resource event kinds emitted by a provider watcher.
 const (
 	ResourceEventCreated ResourceEventType = "created"
 	ResourceEventUpdated ResourceEventType = "updated"

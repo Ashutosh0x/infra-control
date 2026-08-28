@@ -22,42 +22,52 @@ func NewGraphStore(db *DB, logger *zap.Logger) *GraphStore {
 	}
 }
 
-func (s *GraphStore) UpsertNode(ctx context.Context, node *types.Node) error {
+// UpsertNode inserts or updates a graph node.
+func (s *GraphStore) UpsertNode(_ context.Context, _ *types.Node) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) UpsertEdge(ctx context.Context, edge *types.Edge) error {
+// UpsertEdge inserts or updates a graph edge.
+func (s *GraphStore) UpsertEdge(_ context.Context, _ *types.Edge) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) GetNode(ctx context.Context, id string) (*types.Node, error) {
+// GetNode returns a graph node.
+func (s *GraphStore) GetNode(_ context.Context, _ string) (*types.Node, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) GetEdges(ctx context.Context, nodeID string, direction string) ([]*types.Edge, error) {
+// GetEdges returns the edges for.
+func (s *GraphStore) GetEdges(_ context.Context, _ string, _ string) ([]*types.Edge, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) GetNeighbors(ctx context.Context, nodeID string, maxDepth int) ([]*types.Node, []*types.Edge, error) {
+// GetNeighbors returns the neighbours of graph record.
+func (s *GraphStore) GetNeighbors(_ context.Context, _ string, _ int) ([]*types.Node, []*types.Edge, error) {
 	return nil, nil, fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) DeleteNode(ctx context.Context, id string) error {
+// DeleteNode removes a graph node.
+func (s *GraphStore) DeleteNode(_ context.Context, _ string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) DeleteEdge(ctx context.Context, id string) error {
+// DeleteEdge removes a graph edge.
+func (s *GraphStore) DeleteEdge(_ context.Context, _ string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) GetStats(ctx context.Context) (*types.GraphStats, error) {
+// GetStats returns aggregate graph statistics.
+func (s *GraphStore) GetStats(_ context.Context) (*types.GraphStats, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) BulkUpsertNodes(ctx context.Context, nodes []*types.Node) error {
+// BulkUpsertNodes inserts or updates many graph nodes.
+func (s *GraphStore) BulkUpsertNodes(_ context.Context, _ []*types.Node) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (s *GraphStore) BulkUpsertEdges(ctx context.Context, edges []*types.Edge) error {
+// BulkUpsertEdges inserts or updates many graph edges.
+func (s *GraphStore) BulkUpsertEdges(_ context.Context, _ []*types.Edge) error {
 	return fmt.Errorf("not implemented")
 }

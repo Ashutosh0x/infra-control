@@ -207,6 +207,6 @@ func (r *Renderer) writeTemplate(data any, tmpl string) error {
 	if err := t.Execute(r.out, data); err != nil {
 		return fmt.Errorf("execute go-template: %w", err)
 	}
-	fmt.Fprintln(r.out)
+	_, _ = fmt.Fprintln(r.out)
 	return nil
 }

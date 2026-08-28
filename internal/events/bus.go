@@ -1,3 +1,4 @@
+// Package events provides the internal publish and subscribe event bus.
 package events
 
 import (

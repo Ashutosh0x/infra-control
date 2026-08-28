@@ -85,7 +85,7 @@ type riskReport struct {
 	Results   []riskResult   `json:"results"`
 }
 
-func runRiskAssess(cmd *cobra.Command, args []string) error {
+func runRiskAssess(cmd *cobra.Command, _ []string) error {
 	if err := requireFile(riskStatePath, "state file (--state)"); err != nil {
 		return err
 	}

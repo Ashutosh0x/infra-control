@@ -21,7 +21,7 @@ var auditCmd = &cobra.Command{
 var auditListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List audit events",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl audit")
 	},
 }
@@ -30,7 +30,7 @@ var auditShowCmd = &cobra.Command{
 	Use:   "show <id>",
 	Short: "Show audit event details",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl audit")
 	},
 }
@@ -38,7 +38,7 @@ var auditShowCmd = &cobra.Command{
 var auditExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export audit trail",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl audit")
 	},
 }

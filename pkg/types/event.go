@@ -8,6 +8,7 @@ import (
 // EventType specifies the nature of an internal event.
 type EventType string
 
+// Event types published on the internal bus.
 const (
 	EventTypeResourceDiscovered  EventType = "ResourceDiscovered"
 	EventTypeResourceUpdated     EventType = "ResourceUpdated"

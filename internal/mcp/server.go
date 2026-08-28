@@ -26,7 +26,7 @@ type ServerConfig struct {
 }
 
 // NewServer creates a new MCP server.
-func NewServer(cfg ServerConfig, logger *zap.Logger) *Server {
+func NewServer(_ ServerConfig, logger *zap.Logger) *Server {
 	return &Server{
 		logger:      logger,
 		permissions: NewPermissionManager(logger),
@@ -35,7 +35,7 @@ func NewServer(cfg ServerConfig, logger *zap.Logger) *Server {
 }
 
 // Start starts the MCP server.
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(_ context.Context) error {
 	s.logger.Info("starting MCP server")
 	// Implementation will use github.com/modelcontextprotocol/go-sdk
 	// to register tools, resources, and prompts
@@ -51,7 +51,7 @@ type Tool struct {
 }
 
 // ToolHandler processes an MCP tool invocation.
-type ToolHandler func(ctx context.Context, input map[string]any) (any, error)
+type ToolHandler func(_ context.Context, _ map[string]any) (any, error)
 
 // Resource represents an MCP resource that AI agents can read.
 type Resource struct {
@@ -186,6 +186,7 @@ func NewPermissionManager(logger *zap.Logger) *PermissionManager {
 // AgentPermission defines what an AI agent is allowed to do.
 type AgentPermission string
 
+// Permission levels a Model Context Protocol client may be granted.
 const (
 	PermissionReadOnly AgentPermission = "read_only" // Can only read/query
 	PermissionPropose  AgentPermission = "propose"   // Can propose changes (needs approval)
@@ -193,7 +194,7 @@ const (
 )
 
 // CheckPermission verifies if the agent has the required permission.
-func (pm *PermissionManager) CheckPermission(ctx context.Context, agentID string, required AgentPermission) error {
+func (pm *PermissionManager) CheckPermission(_ context.Context, agentID string, required AgentPermission) error {
 	// Implementation will check agent permissions against RBAC
 	pm.logger.Debug("checking agent permission",
 		zap.String("agent_id", agentID),
@@ -213,12 +214,12 @@ func NewGuardrails(logger *zap.Logger) *Guardrails {
 }
 
 // EnforceRateLimit checks if the agent has exceeded its rate limit.
-func (g *Guardrails) EnforceRateLimit(ctx context.Context, agentID string) error {
+func (g *Guardrails) EnforceRateLimit(_ context.Context, _ string) error {
 	return nil
 }
 
 // EnforceScope checks if the requested operation is within the agent's allowed scope.
-func (g *Guardrails) EnforceScope(ctx context.Context, agentID string, tool string, input map[string]any) error {
+func (g *Guardrails) EnforceScope(_ context.Context, agentID string, tool string, _ map[string]any) error {
 	// Block destructive operations unless explicitly allowed
 	destructiveTools := map[string]bool{
 		"propose_remediation": true,

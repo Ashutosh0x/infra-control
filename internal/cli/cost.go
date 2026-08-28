@@ -42,7 +42,7 @@ Examples:
 var costBreakdownCmd = &cobra.Command{
 	Use:   "breakdown",
 	Short: "Show cost breakdown by provider, account, type, or tag",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl cost")
 	},
 }
@@ -50,7 +50,7 @@ var costBreakdownCmd = &cobra.Command{
 var costEstimateCmd = &cobra.Command{
 	Use:   "estimate",
 	Short: "Estimate cost impact of a Terraform plan",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl cost")
 	},
 }
@@ -58,7 +58,7 @@ var costEstimateCmd = &cobra.Command{
 var costAnomaliesCmd = &cobra.Command{
 	Use:   "anomalies",
 	Short: "Detect cost anomalies and unexpected spending",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl cost")
 	},
 }
@@ -67,7 +67,7 @@ var costOptimizeCmd = &cobra.Command{
 	Use:     "optimize",
 	Aliases: []string{"recommendations", "savings"},
 	Short:   "Show cost optimization recommendations",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl cost")
 	},
 }
@@ -75,7 +75,7 @@ var costOptimizeCmd = &cobra.Command{
 var costForecastCmd = &cobra.Command{
 	Use:   "forecast",
 	Short: "Forecast infrastructure spending",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl cost")
 	},
 }
@@ -83,7 +83,7 @@ var costForecastCmd = &cobra.Command{
 var costTrendsCmd = &cobra.Command{
 	Use:   "trends",
 	Short: "Show cost trends over time",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl cost")
 	},
 }

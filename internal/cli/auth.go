@@ -36,7 +36,7 @@ Examples:
 
   # Login to Azure (triggers az login flow)
   infractl login azure --subscription <id>`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -45,7 +45,7 @@ var loginStatusCmd = &cobra.Command{
 	Use:     "status",
 	Aliases: []string{"whoami"},
 	Short:   "Show current authentication status across all providers",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -53,7 +53,7 @@ var loginStatusCmd = &cobra.Command{
 var loginAWSCmd = &cobra.Command{
 	Use:   "aws",
 	Short: "Configure AWS credentials for infractl",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -61,7 +61,7 @@ var loginAWSCmd = &cobra.Command{
 var loginGCPCmd = &cobra.Command{
 	Use:   "gcp",
 	Short: "Configure GCP credentials for infractl",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -69,7 +69,7 @@ var loginGCPCmd = &cobra.Command{
 var loginAzureCmd = &cobra.Command{
 	Use:   "azure",
 	Short: "Configure Azure credentials for infractl",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -77,7 +77,7 @@ var loginAzureCmd = &cobra.Command{
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Remove locally stored credentials",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -148,7 +148,7 @@ Examples:
 var configViewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "Display the current configuration",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -157,7 +157,7 @@ var configSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
 	Short: "Set a configuration value",
 	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -166,7 +166,7 @@ var configGetCmd = &cobra.Command{
 	Use:   "get <key>",
 	Short: "Get a configuration value",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }
@@ -174,7 +174,7 @@ var configGetCmd = &cobra.Command{
 var configInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new configuration file interactively",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return notImplemented("Authentication", "docs/ROADMAP.md#authentication")
 	},
 }

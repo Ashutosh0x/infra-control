@@ -65,7 +65,7 @@ func ParseStateFile(path string) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open state file %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	state, err := ParseState(f)
 	if err != nil {

@@ -33,7 +33,7 @@ var remediateInvestigateCmd = &cobra.Command{
 	Use:   "investigate <drift-event-id>",
 	Short: "AI-powered root cause investigation",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -42,7 +42,7 @@ var remediatePlanCmd = &cobra.Command{
 	Use:   "plan <drift-event-id>",
 	Short: "Generate an AI-powered remediation plan",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -51,7 +51,7 @@ var remediateApplyCmd = &cobra.Command{
 	Use:   "apply <remediation-id>",
 	Short: "Execute an approved remediation plan",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -60,7 +60,7 @@ var remediateListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List remediation plans",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -69,7 +69,7 @@ var remediateApproveCmd = &cobra.Command{
 	Use:   "approve <remediation-id>",
 	Short: "Approve a pending remediation plan",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -78,7 +78,7 @@ var remediateRejectCmd = &cobra.Command{
 	Use:   "reject <remediation-id>",
 	Short: "Reject a pending remediation plan",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -87,7 +87,7 @@ var remediateRollbackCmd = &cobra.Command{
 	Use:   "rollback <remediation-id>",
 	Short: "Rollback a completed or failed remediation",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }
@@ -96,7 +96,7 @@ var remediateShowCmd = &cobra.Command{
 	Use:   "show <remediation-id>",
 	Short: "Show remediation details including Terraform code diff",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return requiresBackend("infractl remediate")
 	},
 }

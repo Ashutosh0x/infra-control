@@ -4,24 +4,32 @@ import (
 	"net/http"
 )
 
+// DriftHandler serves the /drift endpoints.
+//
+// This is a skeleton: the routes are registered but return no data.
 type DriftHandler struct{}
 
+// NewDriftHandler creates a DriftHandler.
 func NewDriftHandler() *DriftHandler {
 	return &DriftHandler{}
 }
 
-func (h *DriftHandler) List(w http.ResponseWriter, r *http.Request) {
+// List lists drift.
+func (h *DriftHandler) List(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, []string{}, "", nil)
 }
 
-func (h *DriftHandler) Get(w http.ResponseWriter, r *http.Request) {
+// Get returns drift.
+func (h *DriftHandler) Get(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"id": "dummy"}, "", nil)
 }
 
-func (h *DriftHandler) Scan(w http.ResponseWriter, r *http.Request) {
+// Scan scans drift.
+func (h *DriftHandler) Scan(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusAccepted, map[string]string{"status": "scanning"}, "", nil)
 }
 
-func (h *DriftHandler) Resolve(w http.ResponseWriter, r *http.Request) {
+// Resolve resolves drift.
+func (h *DriftHandler) Resolve(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "resolved"}, "", nil)
 }
