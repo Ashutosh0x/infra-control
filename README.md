@@ -394,60 +394,63 @@ The CLI itself depends on Cobra, Viper, `golang.org/x/term`, and the standard li
 
 ```mermaid
 flowchart LR
-    subgraph inputs [Inputs, read-only]
+    subgraph inputs["Inputs, read-only"]
         direction TB
-        state[terraform.tfstate]
-        live[live.json<br/>live snapshot]
-        plan[plan.json<br/>terraform show -json]
+        stateFile["terraform.tfstate"]
+        liveFile["live.json<br/>live snapshot"]
+        planFile["plan.json<br/>terraform show -json"]
     end
 
-    subgraph binary [infractl, single static binary]
+    subgraph binary["infractl, single static binary"]
         direction TB
-        tf[internal/terraform<br/>state and plan parsing<br/>attribute comparison]
-        graph[internal/graph<br/>dependency edges<br/>blast radius]
-        risk[internal/risk<br/>four-dimension scoring]
-        ui[internal/ui<br/>tables, diffs, formats]
+        tfPkg["internal/terraform<br/>state and plan parsing<br/>attribute comparison"]
+        graphPkg["internal/graph<br/>dependency edges<br/>blast radius"]
+        riskPkg["internal/risk<br/>four-dimension scoring"]
+        ignorePkg["internal/ignore<br/>suppression rules"]
+        uiPkg["internal/ui<br/>tables, diffs, formats"]
 
-        tf --> graph
-        tf --> risk
-        graph --> ui
-        risk --> ui
+        tfPkg --> graphPkg
+        tfPkg --> riskPkg
+        tfPkg --> ignorePkg
+        graphPkg --> uiPkg
+        riskPkg --> uiPkg
+        ignorePkg --> uiPkg
     end
 
-    subgraph outputs [Outputs]
+    subgraph outputs["Outputs"]
         direction TB
-        stdout["stdout<br/>table, json, yaml, csv, tsv"]
-        stderr["stderr<br/>progress, warnings, errors"]
-        code["exit code<br/>0 clean, 3 findings, 1 failed"]
+        outStream["stdout<br/>table, json, yaml, csv, sarif"]
+        errStream["stderr<br/>progress, warnings, errors"]
+        exitCode["exit code<br/>0 clean, 3 findings, 1 failed"]
     end
 
-    state --> tf
-    live --> tf
-    plan --> tf
-    ui --> stdout
-    ui --> stderr
-    ui --> code
+    stateFile --> tfPkg
+    liveFile --> tfPkg
+    planFile --> tfPkg
+    uiPkg --> outStream
+    uiPkg --> errStream
+    uiPkg --> exitCode
 
-    classDef in fill:#e8f4f8,stroke:#0969da,color:#111
-    classDef core fill:#f0f0ff,stroke:#8250df,color:#111
-    classDef out fill:#eaf5ea,stroke:#1a7f37,color:#111
-    class state,live,plan in
-    class tf,graph,risk,ui core
-    class stdout,stderr,code out
+    classDef inputNode fill:#e8f4f8,stroke:#0969da,color:#111
+    classDef coreNode fill:#f0f0ff,stroke:#8250df,color:#111
+    classDef outputNode fill:#eaf5ea,stroke:#1a7f37,color:#111
+    class stateFile,liveFile,planFile inputNode
+    class tfPkg,graphPkg,riskPkg,ignorePkg,uiPkg coreNode
+    class outStream,errStream,exitCode outputNode
 ```
 
 Local analysis touches no network and no server component. The optional hosted control plane is separate:
 
 ```mermaid
 flowchart TB
-    subgraph plane [Control plane, optional and not yet implemented]
+    subgraph plane["Control plane, optional and not yet implemented"]
         direction LR
         controller[controller<br/>scheduled scans<br/>event loops]
         worker[worker<br/>queue consumers]
         mcp[mcp-server<br/>Model Context Protocol]
     end
 
-    subgraph stores [Backing services]
+    subgraph stores["Backing services"]
         direction LR
         pg[(PostgreSQL<br/>resources, drift, audit)]
         redis[(Redis<br/>cache, locks)]
