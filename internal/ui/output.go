@@ -32,6 +32,10 @@ const (
 	FormatGoTemplate Format = "go-template"
 	// FormatName prints only identifiers, one per line, for shell pipelines.
 	FormatName Format = "name"
+	// FormatSARIF is the Static Analysis Results Interchange Format, which
+	// GitHub code scanning ingests to show findings in a repository's Security
+	// tab and annotate them on pull requests.
+	FormatSARIF Format = "sarif"
 )
 
 // ParseFormat resolves a --output value, returning the format and any argument
@@ -41,7 +45,7 @@ func ParseFormat(s string) (Format, string, error) {
 	name = strings.ToLower(name)
 
 	switch Format(name) {
-	case FormatTable, FormatWide, FormatJSON, FormatYAML, FormatCSV, FormatTSV, FormatName:
+	case FormatTable, FormatWide, FormatJSON, FormatYAML, FormatCSV, FormatTSV, FormatName, FormatSARIF:
 		if hasArg {
 			return "", "", fmt.Errorf("output format %q takes no argument", name)
 		}
@@ -63,7 +67,7 @@ func ParseFormat(s string) (Format, string, error) {
 		return FormatTable, "", nil
 
 	default:
-		return "", "", fmt.Errorf("invalid output format %q (want table, wide, json, yaml, csv, tsv, name, or go-template=TMPL)", name)
+		return "", "", fmt.Errorf("invalid output format %q (want table, wide, json, yaml, csv, tsv, name, sarif, or go-template=TMPL)", name)
 	}
 }
 
@@ -72,7 +76,7 @@ func ParseFormat(s string) (Format, string, error) {
 // corrupt a machine-readable stream.
 func (f Format) IsMachine() bool {
 	switch f {
-	case FormatJSON, FormatYAML, FormatCSV, FormatTSV, FormatName, FormatGoTemplate:
+	case FormatJSON, FormatYAML, FormatCSV, FormatTSV, FormatName, FormatGoTemplate, FormatSARIF:
 		return true
 	default:
 		return false
@@ -93,6 +97,16 @@ type View struct {
 	// Empty is the message shown when there are no results. It should name what
 	// was searched so an empty result is not mistaken for a broken command.
 	Empty string
+	// Sarif carries the findings for `--output sarif`. A command that has no
+	// meaningful SARIF representation leaves it nil, and asking for SARIF from
+	// that command is an error rather than an empty document.
+	Sarif []SarifFinding
+	// SarifTool names the tool in the SARIF document.
+	SarifTool string
+	// SarifVersion is the tool version recorded in the document.
+	SarifVersion string
+	// SarifURI is the tool's information URI.
+	SarifURI string
 }
 
 // Write encodes the view in the requested format and writes it to stdout.
@@ -115,6 +129,12 @@ func (r *Renderer) Write(view View, format Format, arg string) error {
 			r.Println(name)
 		}
 		return nil
+
+	case FormatSARIF:
+		if view.Sarif == nil {
+			return fmt.Errorf("this command does not produce SARIF output")
+		}
+		return r.WriteSarif(BuildSarif(view.SarifTool, view.SarifVersion, view.SarifURI, view.Sarif))
 
 	case FormatGoTemplate:
 		return r.writeTemplate(view.Data, arg)

@@ -194,9 +194,40 @@ jobs:
           diff run1.json run2.json
           diff run2.json run3.json
 
+      - name: Ignore rules suppress, and say what they suppressed
+        run: |
+          ./infractl drift scan --state testdata/terraform.tfstate             --live testdata/live.json             --ignore-file testdata/.infractl-ignore.yaml -o json > ignored.json
+
+          kept=$(jq '.findings | length' ignored.json)
+          test "$kept" -eq 3 || (echo "expected 3 findings after suppression, got $kept" && exit 1)
+
+          hidden=$(jq '.suppressed' ignored.json)
+          test "$hidden" -eq 1 || (echo "expected 1 suppressed, got $hidden" && exit 1)
+
+          # Suppression is never silent: the rule that fired must be named.
+          jq -e '.suppressed_by | length == 1' ignored.json > /dev/null
+
+          # --no-ignore restores everything, which is how an audit sees what is hidden.
+          all=$(./infractl drift scan --state testdata/terraform.tfstate             --live testdata/live.json --ignore-file testdata/.infractl-ignore.yaml             --no-ignore -o json | jq '.findings | length')
+          test "$all" -eq 4 || (echo "expected 4 findings with --no-ignore, got $all" && exit 1)
+
+      - name: SARIF output is valid and uploadable
+        run: |
+          ./infractl drift scan --state testdata/terraform.tfstate             --live testdata/live.json -o sarif > drift.sarif
+
+          jq -e '.version == "2.1.0"' drift.sarif > /dev/null
+          jq -e '.runs[0].tool.driver.name == "infractl"' drift.sarif > /dev/null
+
+          # GitHub rejects an upload whose results carry no location or whose
+          # rules array is null, so both are asserted here rather than found
+          # at upload time.
+          jq -e '.runs[0].tool.driver.rules | type == "array"' drift.sarif > /dev/null
+          jq -e '[.runs[0].results[] | select((.locations | length) == 0)] | length == 0' drift.sarif > /dev/null
+          jq -e '[.runs[0].results[] | select(.level | IN("error","warning","note","none") | not)] | length == 0' drift.sarif > /dev/null
+
       - name: Every output format renders
         run: |
-          for format in table wide json yaml csv tsv name; do
+          for format in table wide json yaml csv tsv name sarif; do
             ./infractl state list testdata/terraform.tfstate -o "$format" > /dev/null \
               || (echo "format $format failed" && exit 1)
           done

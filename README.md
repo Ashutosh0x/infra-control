@@ -183,6 +183,8 @@ The bucket scores critical because two security-relevant attributes moved at onc
 | Blast radius | `graph blast-radius` | Everything that breaks when a resource changes, by distance |
 | Dependency listing | `graph deps` | Upstream or downstream neighbours of a resource |
 | Graph export | `graph export` | Graphviz DOT or Mermaid, renderable inline on GitHub |
+| Drift suppression | `.infractl-ignore.yaml` | Silence expected drift with a required reason and optional expiry |
+| GitHub code scanning | `-o sarif` | Findings in the Security tab, annotated on the pull request |
 
 ### Correctness details that matter
 
@@ -223,9 +225,61 @@ The bucket scores critical because two security-relevant attributes moved at onc
 | YAML | `-o yaml` | Config-adjacent tooling |
 | CSV / TSV | `-o csv`, `-o tsv` | Spreadsheets |
 | Name | `-o name` | Shell loops: `for a in $(infractl state list x -o name)` |
+| SARIF | `-o sarif` | GitHub code scanning, Security tab alerts |
 | Template | `-o go-template='{{.Address}}'` | Custom shaping |
 
 ---
+
+### Suppressing expected drift
+
+Some infrastructure drifts by design: an autoscaling group's capacity moves on its own, a provider assigns a load balancer's IP, a resource mid-decommission disagrees with state until it is removed. Reporting these every run is the failure mode that gets drift tooling switched off, because the real findings get lost among the ones nobody can act on.
+
+`.infractl-ignore.yaml` suppresses them:
+
+```yaml
+version: 1
+rules:
+  - address: "aws_autoscaling_group.*"
+    attributes: [desired_capacity, min_size]
+    reason: "Capacity is managed by the autoscaling policy, not Terraform"
+
+  - address: "aws_instance.bastion"
+    reason: "Decommissioning, tracked in INFRA-4821"
+    expires: "2026-12-31"
+```
+
+Three rules keep this from becoming a way to hide problems:
+
+| Property | Effect |
+| --- | --- |
+| A reason is required | A rule without one is a config error, not a silent default, so the file stays reviewable |
+| Expiry is enforced | Past the date the rule stops suppressing and the scan says so, which stops a temporary exception becoming permanent |
+| Suppression is counted | Every scan reports how many findings were hidden and which rule hid each; `--no-ignore` shows them |
+
+An attribute-scoped rule suppresses a finding only if it covers **every** changed attribute. A resource where an expected attribute and an unexpected one both moved is still reported, because the unexpected one is the finding.
+
+```bash
+infractl drift scan --state terraform.tfstate --live live.json            # nearest ignore file
+infractl drift scan --state terraform.tfstate --live live.json --no-ignore # audit what is hidden
+```
+
+### GitHub code scanning
+
+`-o sarif` emits SARIF 2.1.0, so drift lands in the repository's Security tab next to CodeQL, annotated on the pull request that introduced it, with GitHub tracking which findings are new, fixed, or still open across runs.
+
+```yaml
+      - name: Drift scan
+        run: |
+          infractl drift scan --state terraform.tfstate --live live.json             -o sarif > drift.sarif
+        continue-on-error: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: drift.sarif
+          category: infractl-drift
+```
+
+A clean scan still uploads a valid document with zero results, which is how GitHub learns the previous findings are fixed rather than merely absent.
 
 ## Command reference
 

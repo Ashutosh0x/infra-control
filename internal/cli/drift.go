@@ -8,9 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ashutosh0x/infra-control/internal/ignore"
 	"github.com/ashutosh0x/infra-control/internal/terraform"
 	"github.com/ashutosh0x/infra-control/internal/ui"
 	"github.com/ashutosh0x/infra-control/pkg/types"
+	"github.com/ashutosh0x/infra-control/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +23,8 @@ var (
 	driftFailOn     string
 	driftShowDiff   bool
 	driftIncludeUnm bool
+	driftIgnorePath string
+	driftNoIgnore   bool
 )
 
 var driftCmd = &cobra.Command{
@@ -107,6 +111,12 @@ type driftFinding struct {
 	Changes  []types.PropertyDiff `json:"changes,omitempty"`
 }
 
+// suppression records that an ignore rule hid a finding.
+type suppression struct {
+	finding driftFinding
+	rule    ignore.Rule
+}
+
 // driftReport is the full result of a scan.
 type driftReport struct {
 	ScannedAt       time.Time      `json:"scanned_at"`
@@ -117,6 +127,11 @@ type driftReport struct {
 	LiveResources   int            `json:"live_resources"`
 	Findings        []driftFinding `json:"findings"`
 	CountsBySeverit map[string]int `json:"counts_by_severity"`
+	// Suppressed counts findings hidden by ignore rules. It is always reported,
+	// so that suppression is visible rather than silent.
+	Suppressed int `json:"suppressed"`
+	// SuppressedBy maps each rule that fired to how many findings it hid.
+	SuppressedBy map[string]int `json:"suppressed_by,omitempty"`
 }
 
 func runDriftScan(_ *cobra.Command, _ []string) error {
@@ -153,7 +168,23 @@ func runDriftScan(_ *cobra.Command, _ []string) error {
 
 	spinner.Update("Comparing %d managed resources", len(managed))
 	findings := compareForDrift(managed, snapshot, driftIncludeUnm)
+
+	spinner.Update("Applying ignore rules")
+	rules, err := loadIgnoreRules()
+	if err != nil {
+		spinner.Fail("Could not read ignore rules")
+		return err
+	}
+
+	findings, suppressed := applyIgnoreRules(findings, rules)
 	spinner.Stop()
+
+	// An expired rule is reported rather than silently dropped: it stopped
+	// suppressing, so the findings it used to hide are about to reappear, and
+	// the user needs to know why.
+	for _, rule := range rules.Expired() {
+		rt.UI.Warn("Ignore rule expired and no longer applies: %s", rule.Describe())
+	}
 
 	// Filter by severity, then order worst-first so the most urgent finding is
 	// the first thing on screen.
@@ -180,6 +211,8 @@ func runDriftScan(_ *cobra.Command, _ []string) error {
 		LiveResources:   len(snapshot.Resources),
 		Findings:        findings,
 		CountsBySeverit: countBySeverity(findings),
+		Suppressed:      len(suppressed),
+		SuppressedBy:    countByRule(suppressed),
 	}
 	if !snapshot.CapturedAt.IsZero() {
 		report.SnapshotAge = time.Since(snapshot.CapturedAt).Round(time.Minute).String()
@@ -469,11 +502,83 @@ func driftView(report driftReport) ui.View {
 	}
 
 	return ui.View{
-		Data:  report,
-		Table: table,
-		Names: names,
-		Empty: fmt.Sprintf("No drift found. %d managed resources match the live snapshot.", report.StateResources),
+		Data:         report,
+		Table:        table,
+		Names:        names,
+		Sarif:        driftSarifFindings(report),
+		SarifTool:    "infractl",
+		SarifVersion: version.Version,
+		SarifURI:     "https://github.com/Ashutosh0x/infra-control",
+		Empty:        fmt.Sprintf("No drift found. %d managed resources match the live snapshot.", report.StateResources),
 	}
+}
+
+// driftSarifRules describes each finding kind once, so a GitHub alert carries
+// an explanation rather than only a resource address.
+var driftSarifRules = map[string][2]string{
+	"modified": {
+		"Resource modified outside Terraform",
+		"A resource managed by Terraform has attributes that disagree with state. " +
+			"Someone changed it outside the Terraform workflow, so the next apply will " +
+			"either revert the change or fail.",
+	},
+	"missing_in_live": {
+		"Resource missing from live infrastructure",
+		"Terraform state records a resource that no longer exists. It was deleted " +
+			"outside Terraform, and the next apply will try to recreate it.",
+	},
+	"unmanaged": {
+		"Unmanaged resource",
+		"A resource exists in the live environment that Terraform does not track. " +
+			"It is not covered by review, policy, or the plan output, and nothing will " +
+			"recreate it if it is lost.",
+	},
+}
+
+// driftSarifFindings converts a report into SARIF findings.
+func driftSarifFindings(report driftReport) []ui.SarifFinding {
+	// A non-nil empty slice matters: it is how a clean scan produces a valid
+	// SARIF document that tells GitHub the previous findings are fixed, rather
+	// than an error saying this command has no SARIF form.
+	findings := make([]ui.SarifFinding, 0, len(report.Findings))
+
+	for _, f := range report.Findings {
+		rule, known := driftSarifRules[f.Kind]
+		if !known {
+			rule = [2]string{"Infrastructure drift", "Live infrastructure disagrees with Terraform state."}
+		}
+
+		message := fmt.Sprintf("%s: %s", rule[0], f.Address)
+		if len(f.Changes) > 0 {
+			paths := make([]string, 0, len(f.Changes))
+			for _, change := range f.Changes {
+				paths = append(paths, change.Path)
+			}
+			message = fmt.Sprintf("%s changed outside Terraform: %s", f.Address, strings.Join(paths, ", "))
+		}
+
+		findings = append(findings, ui.SarifFinding{
+			RuleID:          "drift-" + strings.ReplaceAll(f.Kind, "_", "-"),
+			RuleName:        rule[0],
+			RuleDescription: rule[1],
+			Level:           ui.SeverityToSarifLevel(string(f.Severity)),
+			Message:         message,
+			File:            report.StateFile,
+			// The address and kind identify the same finding across runs, which
+			// is what lets GitHub mark one fixed rather than merely absent. The
+			// changed attributes are deliberately excluded: a finding whose diff
+			// grows is still the same finding.
+			Fingerprint: fmt.Sprintf("%s:%s", f.Kind, f.Address),
+			Properties: map[string]any{
+				"severity":      string(f.Severity),
+				"score":         f.Score,
+				"resource_type": f.Type,
+				"kind":          f.Kind,
+			},
+		})
+	}
+
+	return findings
 }
 
 // printDriftSummary writes the post-table summary and, when requested, the
@@ -524,6 +629,14 @@ func printDriftSummary(report driftReport) {
 	rt.UI.Println()
 	rt.UI.Printf("%d finding(s) across %d managed resources: %s\n",
 		len(report.Findings), report.StateResources, strings.Join(parts, ", "))
+
+	// Suppression is never silent. If rules hid something, the count is stated
+	// along with how to see what was hidden.
+	if report.Suppressed > 0 {
+		rt.UI.Printf("%s\n", rt.UI.Apply(ui.StyleMuted, fmt.Sprintf(
+			"%d suppressed by ignore rules; re-run with --no-ignore to see them.",
+			report.Suppressed)))
+	}
 }
 
 func init() {
@@ -537,6 +650,10 @@ func init() {
 	f.StringVar(&driftFailOn, "fail-on", "none", "exit 3 when a finding at or above this severity is present: none, any, low, medium, high, critical")
 	f.BoolVar(&driftShowDiff, "show-diff", false, "print the property-level diff for each finding")
 	f.BoolVar(&driftIncludeUnm, "include-unmanaged", true, "report live resources that Terraform does not track")
+	f.StringVar(&driftIgnorePath, "ignore-file", "",
+		"path to the ignore file (default: nearest .infractl-ignore.yaml, searching upwards)")
+	f.BoolVar(&driftNoIgnore, "no-ignore", false,
+		"ignore the ignore file and report every finding, for auditing what suppression hides")
 
 	_ = driftScanCmd.MarkFlagRequired("state")
 	_ = driftScanCmd.MarkFlagRequired("live")
@@ -549,4 +666,68 @@ func init() {
 		cobra.FixedCompletions([]string{"critical", "high", "medium", "low", "info"}, cobra.ShellCompDirectiveNoFileComp))
 	_ = driftScanCmd.RegisterFlagCompletionFunc("fail-on",
 		cobra.FixedCompletions([]string{"none", "any", "critical", "high", "medium", "low"}, cobra.ShellCompDirectiveNoFileComp))
+}
+
+// loadIgnoreRules resolves and loads the suppression rules for this scan.
+//
+// With --no-ignore no rules are loaded at all, which is the flag to reach for
+// when auditing what suppression is hiding.
+func loadIgnoreRules() (*ignore.Ruleset, error) {
+	if driftNoIgnore {
+		return &ignore.Ruleset{}, nil
+	}
+
+	path := driftIgnorePath
+	if path == "" {
+		// Walk up from the working directory so a scan run in a subdirectory
+		// still picks up rules committed at the repository root.
+		cwd, err := os.Getwd()
+		if err == nil {
+			path = ignore.FindDefault(cwd)
+		}
+	}
+
+	rules, err := ignore.Load(path)
+	if err != nil {
+		return nil, failf(ExitUsage, "%w", err)
+	}
+	return rules, nil
+}
+
+// applyIgnoreRules splits findings into those to report and those suppressed.
+func applyIgnoreRules(findings []driftFinding, rules *ignore.Ruleset) ([]driftFinding, []suppression) {
+	if rules.Len() == 0 {
+		return findings, nil
+	}
+
+	kept := make([]driftFinding, 0, len(findings))
+	var suppressed []suppression
+
+	for _, finding := range findings {
+		paths := make([]string, 0, len(finding.Changes))
+		for _, change := range finding.Changes {
+			paths = append(paths, change.Path)
+		}
+
+		if rule, matched := rules.Match(finding.Address, paths); matched {
+			suppressed = append(suppressed, suppression{finding: finding, rule: rule})
+			continue
+		}
+		kept = append(kept, finding)
+	}
+
+	return kept, suppressed
+}
+
+// countByRule tallies suppressions per rule, keyed by the rule's description so
+// the JSON output names which rule hid what.
+func countByRule(suppressed []suppression) map[string]int {
+	if len(suppressed) == 0 {
+		return nil
+	}
+	counts := make(map[string]int, len(suppressed))
+	for _, s := range suppressed {
+		counts[s.rule.Describe()]++
+	}
+	return counts
 }

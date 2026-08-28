@@ -1,0 +1,14 @@
+version: 1
+rules:
+  # The staging subnet is being re-addressed as part of the network migration;
+  # its CIDR and environment tag are expected to disagree with state until the
+  # migration lands.
+  - address: "aws_subnet.private[1]"
+    attributes: ["cidr_block", "tags.environment"]
+    reason: "Network migration in progress, tracked in INFRA-4821"
+    expires: "2027-01-31"
+
+  # A rule that has already lapsed, to prove expiry is enforced.
+  - address: "aws_security_group.orphan"
+    reason: "Temporary exception that was never renewed"
+    expires: "2026-01-01"
