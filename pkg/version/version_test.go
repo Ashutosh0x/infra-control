@@ -20,9 +20,14 @@ func TestGetAlwaysReportsRuntimeFacts(t *testing.T) {
 }
 
 func TestGetIsStableAcrossCalls(t *testing.T) {
-	// The result is cached; two calls must not disagree.
-	if Get() != Get() {
-		t.Error("Get returned different values on successive calls")
+	// The result is cached behind a sync.Once; two calls must not disagree.
+	// The values are bound to locals rather than compared inline so that the
+	// comparison is between two evaluations, not one expression against itself.
+	first := Get()
+	second := Get()
+
+	if first != second {
+		t.Errorf("Get returned different values on successive calls:\n%+v\n%+v", first, second)
 	}
 }
 
