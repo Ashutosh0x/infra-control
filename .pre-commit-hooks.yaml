@@ -1,0 +1,19 @@
+# Hooks consumers get by adding this repo to their .pre-commit-config.yaml.
+#
+# These run against files already in the working tree; none of them reach the
+# network or need cloud credentials.
+- id: infractl-plan
+  name: reject destructive Terraform plans
+  description: Fail the commit if a Terraform plan would delete or replace a resource.
+  entry: infractl plan analyse --fail-on destructive
+  language: system
+  files: '\.json$'
+  pass_filenames: true
+
+- id: infractl-state-check
+  name: validate Terraform state parses
+  description: Fail the commit if a state file cannot be read, which catches truncated or half-written state.
+  entry: infractl state inspect --quiet --output json
+  language: system
+  files: '\.tfstate$'
+  pass_filenames: true

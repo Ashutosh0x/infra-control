@@ -1,3 +1,5 @@
+version: 2
+
 project_name: infra-control
 
 before:
@@ -19,7 +21,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.Commit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
+      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.ShortCommit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
 
   - id: controller
     main: ./cmd/controller
@@ -34,7 +36,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.Commit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
+      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.ShortCommit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
 
   - id: worker
     main: ./cmd/worker
@@ -49,7 +51,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.Commit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
+      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.ShortCommit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
 
   - id: mcp-server
     main: ./cmd/mcp-server
@@ -64,10 +66,10 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.Commit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
+      - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.ShortCommit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -77,13 +79,13 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -91,3 +93,80 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+
+# Package manager distribution. A tool nobody can install does not get adopted,
+# and asking people to curl a tarball is a step most will not take.
+homebrew_casks:
+  - name: infractl
+    repository:
+      owner: Ashutosh0x
+      name: homebrew-tap
+    directory: Casks
+    homepage: https://github.com/Ashutosh0x/infra-control
+    description: Detect Terraform drift, score risk, and map blast radius, with no server and no cloud credentials
+    license: Apache-2.0
+    # Only the CLI is published. The server components are skeletons, and
+    # shipping them would imply they run.
+    ids: [infractl]
+    url:
+      verified: github.com/Ashutosh0x/infra-control
+    # Homebrew is opt-in until the tap repository exists. Set PUBLISH_TAPS to
+    # any non-empty value on a release to push the cask; without it a release
+    # succeeds and simply skips this step, rather than failing at the end of a
+    # build that otherwise worked.
+    skip_upload: '{{ if .Env.PUBLISH_TAPS }}false{{ else }}true{{ end }}'
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/infractl"]
+          end
+
+scoops:
+  - name: infractl
+    repository:
+      owner: Ashutosh0x
+      name: scoop-bucket
+    homepage: https://github.com/Ashutosh0x/infra-control
+    description: Detect Terraform drift, score risk, and map blast radius, with no server and no cloud credentials
+    license: Apache-2.0
+    ids: [infractl]
+    skip_upload: '{{ if .Env.PUBLISH_TAPS }}false{{ else }}true{{ end }}'
+
+dockers_v2:
+  - ids: [infractl]
+    images:
+      - "ghcr.io/ashutosh0x/infractl"
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    dockerfile: deployments/docker/Dockerfile.cli
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: infractl
+      org.opencontainers.image.description: Terraform drift detection, risk scoring, and blast radius
+      org.opencontainers.image.source: https://github.com/Ashutosh0x/infra-control
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: Apache-2.0
+
+release:
+  footer: |
+    ## Install
+
+    ```bash
+    # Homebrew
+    brew install Ashutosh0x/tap/infractl
+
+    # Scoop
+    scoop bucket add ashutosh0x https://github.com/Ashutosh0x/scoop-bucket
+    scoop install infractl
+
+    # Go
+    go install github.com/ashutosh0x/infra-control/cmd/infractl@{{ .Tag }}
+
+    # Docker
+    docker run --rm -v "$PWD:/work" -w /work ghcr.io/ashutosh0x/infractl:{{ .Version }}       drift scan --state terraform.tfstate --live live.json
+    ```

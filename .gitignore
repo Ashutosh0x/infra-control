@@ -36,3 +36,6 @@ live.json
 *.swp
 .DS_Store
 Thumbs.db
+
+# GoReleaser build output
+/dist/

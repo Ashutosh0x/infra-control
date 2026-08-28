@@ -1,0 +1,15 @@
+# Distroless rather than alpine: the CLI is a static binary that needs no shell,
+# no package manager, and no libc. Everything absent from the image is something
+# that cannot be exploited in it.
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY infractl /usr/local/bin/infractl
+
+# The analysis commands read files and write to stdout. Running as a
+# non-root user costs nothing and means a mounted working directory
+# cannot be modified by the container.
+USER nonroot:nonroot
+WORKDIR /work
+
+ENTRYPOINT ["/usr/local/bin/infractl"]
+CMD ["--help"]

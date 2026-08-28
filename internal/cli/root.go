@@ -34,28 +34,6 @@ var (
 	asciiOnly    bool
 	quiet        bool
 	profile      string
-
-	// Cloud provider context flags (global)
-	awsAccountID     string
-	awsRegion        string
-	awsProfile       string
-	awsRoleARN       string
-	gcpProjectID     string
-	gcpRegion        string
-	gcpZone          string
-	gcpImpersonate   string
-	azSubscriptionID string
-	azResourceGroup  string
-	azTenantID       string
-	kubeContext      string
-	kubeNamespace    string
-	kubeConfig       string
-
-	// API connection
-	serverAddr string
-	apiToken   string
-	insecure   bool
-	timeout    string
 )
 
 // rootCmd is the base command.
@@ -71,12 +49,9 @@ Local analysis, no server required:
   infractl plan analyse         Score a plan for blast radius and destructive changes
   infractl risk assess          Score resources across security, reliability, cost, compliance
 
-Cloud provider context:
-  Target a specific account with --aws-account, --gcp-project, or
-  --az-subscription. These override the configuration file.
-
 Output:
   Every command supports --output table|wide|json|yaml|csv|tsv|name|go-template.
+  Drift additionally supports --output sarif for GitHub code scanning.
   Results go to stdout and progress goes to stderr, so piping into jq or a
   spreadsheet needs no filtering.
 
@@ -88,12 +63,14 @@ Exit codes:
   4  required configuration or credentials are missing
   5  a required backend was unreachable
 
-Configuration precedence, highest first:
+Configuration, highest precedence first:
   1. Command-line flags
-  2. Environment variables, prefixed INFRACTL_
-  3. The file given by --config
-  4. ./.infractl.yaml
-  5. $HOME/.infractl.yaml`,
+  2. Environment variables, prefixed INFRACTL_ (--min-severity is INFRACTL_MIN_SEVERITY)
+  3. The config file: --config, else ./.infractl.yaml, else $HOME/.infractl.yaml
+  4. Flag defaults
+
+  Use --profile to select a named block from the config file, so one file can
+  hold settings for staging and production without either leaking into the other.`,
 	Example: `  # Summarise what Terraform is managing
   infractl state inspect terraform.tfstate
 
@@ -105,10 +82,19 @@ Configuration precedence, highest first:
 
   # Score every resource in state and show only the worst
   infractl risk assess --state terraform.tfstate --min-level high`,
-	Version:           version.Version,
-	SilenceUsage:      true,
-	SilenceErrors:     true,
-	PersistentPreRunE: func(_ *cobra.Command, _ []string) error { return initRuntime() },
+	Version:       version.Version,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	// Config is resolved before the runtime is built, so that a format or
+	// colour setting from the file is honoured by the renderer. Cobra runs this
+	// hook before it validates required flags, which is what lets the config
+	// file satisfy a flag the user did not type.
+	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := loadConfig(cmd); err != nil {
+			return err
+		}
+		return initRuntime()
+	},
 }
 
 // Execute runs the root command and translates the outcome into an exit status.
@@ -157,40 +143,12 @@ func init() {
 
 	// Output control
 	pf.StringVarP(&outputFormat, "output", "o", "table",
-		"output format: table, wide, json, yaml, csv, tsv, name, go-template=TMPL")
+		"output format: table, wide, json, yaml, csv, tsv, name, sarif, go-template=TMPL")
 	pf.BoolVarP(&verbose, "verbose", "v", false, "enable verbose diagnostic output on stderr")
 	pf.StringVar(&colorWhen, "color", "auto", "when to use color: auto, always, never")
 	pf.BoolVar(&noColor, "no-color", false, "disable color (shorthand for --color=never)")
 	pf.BoolVar(&asciiOnly, "ascii", false, "use ASCII symbols instead of box-drawing characters")
 	pf.BoolVarP(&quiet, "quiet", "q", false, "suppress progress output; results and errors still print")
-
-	// AWS context
-	pf.StringVar(&awsAccountID, "aws-account", "", "AWS account ID to target (env: INFRACTL_AWS_ACCOUNT)")
-	pf.StringVar(&awsRegion, "aws-region", "", "AWS region (env: AWS_REGION)")
-	pf.StringVar(&awsProfile, "aws-profile", "", "AWS named profile (env: AWS_PROFILE)")
-	pf.StringVar(&awsRoleARN, "aws-role-arn", "", "AWS IAM role ARN to assume (env: INFRACTL_AWS_ROLE_ARN)")
-
-	// GCP context
-	pf.StringVar(&gcpProjectID, "gcp-project", "", "GCP project ID to target (env: INFRACTL_GCP_PROJECT)")
-	pf.StringVar(&gcpRegion, "gcp-region", "", "GCP region (env: CLOUDSDK_COMPUTE_REGION)")
-	pf.StringVar(&gcpZone, "gcp-zone", "", "GCP zone (env: CLOUDSDK_COMPUTE_ZONE)")
-	pf.StringVar(&gcpImpersonate, "gcp-impersonate", "", "GCP service account to impersonate")
-
-	// Azure context
-	pf.StringVar(&azSubscriptionID, "az-subscription", "", "Azure subscription ID to target (env: INFRACTL_AZ_SUBSCRIPTION)")
-	pf.StringVar(&azResourceGroup, "az-resource-group", "", "Azure resource group (env: INFRACTL_AZ_RESOURCE_GROUP)")
-	pf.StringVar(&azTenantID, "az-tenant", "", "Azure tenant ID (env: AZURE_TENANT_ID)")
-
-	// Kubernetes context
-	pf.StringVar(&kubeContext, "kube-context", "", "Kubernetes context name (env: INFRACTL_KUBE_CONTEXT)")
-	pf.StringVar(&kubeNamespace, "kube-namespace", "", "Kubernetes namespace (env: INFRACTL_KUBE_NAMESPACE)")
-	pf.StringVar(&kubeConfig, "kubeconfig", "", "path to kubeconfig file (env: KUBECONFIG)")
-
-	// API connection
-	pf.StringVar(&serverAddr, "server", "", "infra-control server address (env: INFRACTL_SERVER)")
-	pf.StringVar(&apiToken, "token", "", "API authentication token (env: INFRACTL_TOKEN)")
-	pf.BoolVar(&insecure, "insecure", false, "skip TLS verification")
-	pf.StringVar(&timeout, "timeout", "30s", "request timeout duration")
 
 	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 

@@ -41,10 +41,27 @@ This sits in the gap: a single static binary that reads the files you already ha
 
 ## Installation
 
-### Go install
+### Package managers
 
 ```bash
+# Homebrew (macOS, Linux)
+brew install Ashutosh0x/tap/infractl
+
+# Scoop (Windows)
+scoop bucket add ashutosh0x https://github.com/Ashutosh0x/scoop-bucket
+scoop install infractl
+
+# Go
 go install github.com/ashutosh0x/infra-control/cmd/infractl@latest
+```
+
+### Docker
+
+The image is distroless and runs as a non-root user, so a mounted working
+directory cannot be modified by the container.
+
+```bash
+docker run --rm -v "$PWD:/work" ghcr.io/ashutosh0x/infractl:latest   drift scan --state terraform.tfstate --live live.json
 ```
 
 ### Binary download
@@ -229,6 +246,53 @@ The bucket scores critical because two security-relevant attributes moved at onc
 | Template | `-o go-template='{{.Address}}'` | Custom shaping |
 
 ---
+
+### Configuration
+
+A team running this in CI ends up repeating the same flags on every invocation. `.infractl.yaml` holds them instead, so the settings are reviewed like the code is and a pipeline definition stays short enough to read.
+
+```yaml
+# .infractl.yaml
+state: terraform.tfstate
+live: live.json
+min-severity: medium
+
+profiles:
+  production:
+    min-severity: high
+    fail-on: high
+  audit:
+    min-severity: info
+    output: json
+```
+
+```bash
+infractl drift scan                        # uses the file
+infractl drift scan --profile production   # applies the production block
+```
+
+Precedence, highest first:
+
+| Source | Example |
+| --- | --- |
+| Command-line flag | `--min-severity critical` |
+| Environment variable | `INFRACTL_MIN_SEVERITY=critical` |
+| Config file | `min-severity: high` |
+| Flag default | `info` |
+
+The search path is `--config`, then `./.infractl.yaml`, then `$HOME/.infractl.yaml`, then `$HOME/.config/infractl/`. A missing file is not an error; a file that exists but does not parse is, because it was clearly meant to be used.
+
+### Pre-commit
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/Ashutosh0x/infra-control
+    rev: v0.1.2
+    hooks:
+      - id: infractl-plan          # reject destructive plans
+      - id: infractl-state-check   # catch truncated or half-written state
+```
 
 ### Suppressing expected drift
 
