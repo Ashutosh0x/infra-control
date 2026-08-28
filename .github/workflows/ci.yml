@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref; only the latest commit matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The UI layer branches on platform for terminal handling, so all three
+        # are built. Windows in particular exercises the console mode path that
+        # no other OS reaches.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Verify go.mod is tidy
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum \
+            || (echo "go.mod or go.sum is not tidy; run 'go mod tidy'" && exit 1)
+
+      - name: Check formatting
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -shuffle=on ./...
+
+  race:
+    name: Race detector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # The spinner runs on its own goroutine and shares the renderer's writer
+      # with the calling command, so concurrent access is a real risk here.
+      - name: Test with race detector
+        run: go test -race -shuffle=on ./...
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Test with coverage
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Report
+        run: go tool cover -func=coverage.out | tail -30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  no-emoji:
+    name: No emoji
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Emoji render inconsistently across terminals, carry no meaning for a
+      # screen reader, and cannot be styled by the colour layer. Status is
+      # carried by words, colour, and box-drawing characters instead.
+      - name: Reject emoji in source and docs
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+
+          emoji = re.compile('[\U0001F000-\U0001FAFF☀-⛿️⬀-⯿]')
+          skip_dirs = {'.git', 'bin', 'dist', 'vendor', 'testdata'}
+          exts = {'.go', '.md', '.yaml', '.yml', '.sql', '.sh', '.mod'}
+
+          failures = []
+          for root, dirs, files in os.walk('.'):
+              dirs[:] = [d for d in dirs if d not in skip_dirs]
+              for name in files:
+                  if os.path.splitext(name)[1] not in exts:
+                      continue
+                  path = os.path.join(root, name)
+                  try:
+                      text = open(path, encoding='utf-8').read()
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  for lineno, line in enumerate(text.splitlines(), 1):
+                      if emoji.search(line):
+                          failures.append(f"{path}:{lineno}: {line.strip()[:80]}")
+
+          if failures:
+              print("Emoji found. Use words, colour, or box-drawing characters instead.")
+              print("\n".join(failures))
+              sys.exit(1)
+          print("No emoji found.")
+          PY
+
+  smoke:
+    name: End-to-end smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build the CLI
+        run: go build -o infractl ./cmd/infractl
+
+      # These assertions cover the contract the README documents: the exit code
+      # split, machine-readable output staying parseable, and secrets never
+      # reaching the payload.
+      - name: State parsing
+        run: |
+          ./infractl state inspect testdata/terraform.tfstate
+          test "$(./infractl state list testdata/terraform.tfstate -o name | wc -l)" -eq 5
+
+      - name: Drift detection finds the seeded drift
+        run: |
+          ./infractl drift scan \
+            --state testdata/terraform.tfstate \
+            --live testdata/live.json -o json > drift.json
+
+          findings=$(jq '.findings | length' drift.json)
+          test "$findings" -eq 4 || (echo "expected 4 findings, got $findings" && exit 1)
+
+          critical=$(jq -r '.counts_by_severity.critical' drift.json)
+          test "$critical" -eq 1 || (echo "expected 1 critical, got $critical" && exit 1)
+
+      - name: Exit code 3 signals findings, not failure
+        run: |
+          set +e
+          ./infractl drift scan --state testdata/terraform.tfstate \
+            --live testdata/live.json --fail-on high --quiet -o json > /dev/null
+          code=$?
+          set -e
+          test "$code" -eq 3 || (echo "expected exit 3, got $code" && exit 1)
+
+      - name: Exit code 0 when nothing is over the threshold
+        run: |
+          ./infractl drift scan --state testdata/terraform.tfstate \
+            --live testdata/live.json --fail-on none --quiet -o json > /dev/null
+
+      - name: Machine output is valid and unstyled
+        run: |
+          ./infractl drift scan --state testdata/terraform.tfstate \
+            --live testdata/live.json --color always -o json | jq -e . > /dev/null
+          ./infractl state inspect testdata/terraform.tfstate --color always -o json \
+            | grep -qP '\x1b' && (echo "ANSI escapes leaked into JSON output" && exit 1) || true
+
+      - name: Secrets never reach the payload
+        run: |
+          ./infractl state show testdata/terraform.tfstate aws_db_instance.primary -o json \
+            > shown.json
+          if grep -q "correct-horse-battery-staple" shown.json; then
+            echo "a sensitive value leaked into JSON output"
+            exit 1
+          fi
+          jq -e '.attributes.password == "(sensitive value hidden)"' shown.json > /dev/null
+
+      - name: Blast radius reaches transitive dependents
+        run: |
+          ./infractl graph blast-radius aws_vpc.main \
+            --state testdata/terraform.tfstate -o json > blast.json
+          affected=$(jq '.total_affected' blast.json)
+          test "$affected" -eq 3 || (echo "expected 3 affected, got $affected" && exit 1)
+
+      - name: Output is deterministic across runs
+        run: |
+          for i in 1 2 3; do
+            ./infractl drift scan --state testdata/terraform.tfstate \
+              --live testdata/live.json -o json | jq -S 'del(.scanned_at)' > "run$i.json"
+          done
+          diff run1.json run2.json
+          diff run2.json run3.json
+
+      - name: Every output format renders
+        run: |
+          for format in table wide json yaml csv tsv name; do
+            ./infractl state list testdata/terraform.tfstate -o "$format" > /dev/null \
+              || (echo "format $format failed" && exit 1)
+          done
+          ./infractl state list testdata/terraform.tfstate \
+            -o go-template='{{range .}}{{.Address}}{{"\n"}}{{end}}' > /dev/null

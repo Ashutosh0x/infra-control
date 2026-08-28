@@ -1,0 +1,76 @@
+server:
+  http_port: 8080
+  grpc_port: 9090
+
+database:
+  postgres:
+    connection: "postgresql://postgres:postgres@localhost:5432/infracontrol?sslmode=disable"
+    max_open_conns: 10
+    max_idle_conns: 2
+
+cache:
+  redis:
+    connection: "redis://localhost:6379/0"
+
+events:
+  nats:
+    connection: "nats://localhost:4222"
+
+cloud_providers:
+  aws:
+    enabled: true
+    region: "us-west-2"
+  gcp:
+    enabled: false
+  azure:
+    enabled: false
+  kubernetes:
+    enabled: false
+
+terraform:
+  binary_path: "/usr/local/bin/terraform"
+  workspace_dir: "/var/lib/infra-control/workspaces"
+  parallelism: 10
+
+drift:
+  scan_interval: "1h"
+  severity_thresholds:
+    high: 10
+    medium: 20
+    low: 50
+
+policy:
+  opa_bundle_path: "/var/lib/infra-control/policies"
+  built_in_policies: true
+
+ai:
+  provider: "openai" # openai, anthropic, local
+  model: "gpt-4o"
+  temperature: 0.2
+  max_tokens: 2000
+
+remediation:
+  auto_apply_threshold: "low"
+  pr_settings:
+    create_pr: true
+    default_branch: "main"
+
+audit:
+  retention_days: 90
+  immutable_store: true
+
+telemetry:
+  metrics:
+    enabled: true
+    port: 9091
+  tracing:
+    enabled: true
+    endpoint: "localhost:4317"
+  logging:
+    level: "info"
+    format: "json"
+
+mcp:
+  server_port: 8081
+  auth:
+    enabled: false

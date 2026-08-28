@@ -1,0 +1,61 @@
+name: Bug report
+description: Something behaves differently from what the docs say
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: if this is a security issue, do not open an issue.
+        Use [private reporting](https://github.com/Ashutosh0x/infra-control/security/advisories/new) instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The exact command, and the smallest input that triggers it.
+      placeholder: |
+        infractl drift scan --state terraform.tfstate --live live.json
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: input
+    attributes:
+      label: Input file
+      description: |
+        The state, plan, or snapshot excerpt that triggers this.
+        Remove real account IDs, ARNs, and anything sensitive first.
+      render: json
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: Output of `infractl version`
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Linux, macOS, Windows, Other]
+    validations:
+      required: true
+
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal
+      description: Only if the problem is with output rendering, colour, or alignment.
+      placeholder: Windows Terminal, iTerm2, GNOME Terminal, CI runner

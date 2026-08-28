@@ -1,0 +1,11 @@
+server:
+  http_port: 8080
+  grpc_port: 9090
+
+logging:
+  level: "debug"
+  format: "console"
+
+telemetry:
+  tracing:
+    enabled: false

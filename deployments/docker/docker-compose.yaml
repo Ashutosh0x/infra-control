@@ -1,0 +1,117 @@
+services:
+  controller:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+      - "50051:50051"
+    environment:
+      - INFRA_CONTROL_DATABASE_HOST=postgres
+      - INFRA_CONTROL_DATABASE_PORT=5432
+      - INFRA_CONTROL_DATABASE_USER=infra
+      - INFRA_CONTROL_DATABASE_PASSWORD=infra
+      - INFRA_CONTROL_DATABASE_DBNAME=infracontrol
+      - INFRA_CONTROL_CACHE_HOST=redis
+      - INFRA_CONTROL_CACHE_PORT=6379
+      - INFRA_CONTROL_EVENTS_URL=nats://nats:4222
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    volumes:
+      - ../../configs:/etc/infra-control
+    networks:
+      - infra-control
+
+  worker:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile
+    entrypoint: ["infra-worker"]
+    command: ["--config", "/etc/infra-control/config.yaml"]
+    environment:
+      - INFRA_CONTROL_DATABASE_HOST=postgres
+      - INFRA_CONTROL_CACHE_HOST=redis
+      - INFRA_CONTROL_EVENTS_URL=nats://nats:4222
+    depends_on:
+      - controller
+    volumes:
+      - ../../configs:/etc/infra-control
+    networks:
+      - infra-control
+
+  mcp-server:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile
+    entrypoint: ["infra-mcp-server"]
+    command: ["--config", "/etc/infra-control/config.yaml"]
+    ports:
+      - "3000:3000"
+    environment:
+      - INFRA_CONTROL_DATABASE_HOST=postgres
+      - INFRA_CONTROL_CACHE_HOST=redis
+      - INFRA_CONTROL_EVENTS_URL=nats://nats:4222
+    depends_on:
+      - controller
+    volumes:
+      - ../../configs:/etc/infra-control
+    networks:
+      - infra-control
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: infra
+      POSTGRES_PASSWORD: infra
+      POSTGRES_DB: infracontrol
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infra -d infracontrol"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - infra-control
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - infra-control
+
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["--jetstream", "--store_dir", "/data"]
+    volumes:
+      - nats_data:/data
+    networks:
+      - infra-control
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:
+
+networks:
+  infra-control:
+    driver: bridge

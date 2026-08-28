@@ -1,0 +1,35 @@
+{
+  "captured_at": "2026-08-29T09:00:00Z",
+  "provider": "aws",
+  "resources": {
+    "aws_vpc.main": {
+      "id": "vpc-0a1b2c3d",
+      "cidr_block": "10.0.0.0/16",
+      "enable_dns_hostnames": true,
+      "tags": { "environment": "production", "owner": "platform" }
+    },
+    "aws_subnet.private[0]": {
+      "id": "subnet-1111",
+      "cidr_block": "10.0.1.0/24",
+      "availability_zone": "us-east-1a",
+      "tags": { "environment": "production" }
+    },
+    "aws_subnet.private[1]": {
+      "id": "subnet-2222",
+      "cidr_block": "10.0.99.0/24",
+      "availability_zone": "us-east-1b",
+      "tags": { "environment": "staging" }
+    },
+    "aws_s3_bucket.assets": {
+      "id": "prod-assets",
+      "bucket": "prod-assets",
+      "acl": "public-read",
+      "server_side_encryption_configuration": {},
+      "tags": { "environment": "production", "owner": "platform", "cost-center": "eng" }
+    },
+    "aws_security_group.orphan": {
+      "id": "sg-9999",
+      "name": "created-by-hand"
+    }
+  }
+}

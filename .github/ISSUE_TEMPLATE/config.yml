@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or design proposal
+    url: https://github.com/Ashutosh0x/infra-control/discussions
+    about: Use Discussions for questions, ideas, and design proposals.
+  - name: Security vulnerability
+    url: https://github.com/Ashutosh0x/infra-control/security/advisories/new
+    about: Report privately. Do not open a public issue.
