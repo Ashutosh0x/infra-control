@@ -338,28 +338,82 @@ The CLI itself depends on Cobra, Viper, `golang.org/x/term`, and the standard li
 
 ## Architecture
 
-```
-                      ┌────────────────────────────────────┐
-    terraform.tfstate │  infractl (single static binary)   │
-    live.json ───────>│                                    │
-    plan.json         │  internal/terraform  state, plan   │
-                      │  internal/graph      dependencies  │
-                      │  internal/risk       scoring       │
-                      │  internal/ui         presentation  │
-                      └──────────────┬─────────────────────┘
-                                     │
-                     stdout: results (table, json, yaml, csv)
-                     stderr: progress, warnings, errors
-                     exit:   0 clean · 3 findings · 1 failed
+```mermaid
+flowchart LR
+    subgraph inputs [Inputs, read-only]
+        direction TB
+        state[terraform.tfstate]
+        live[live.json<br/>live snapshot]
+        plan[plan.json<br/>terraform show -json]
+    end
 
-    ── optional, for the hosted control plane ──────────────
-    controller  scheduled scans, event loops
-    worker      queue consumers
-    mcp-server  Model Context Protocol interface
-    Postgres · Redis · NATS
+    subgraph binary [infractl, single static binary]
+        direction TB
+        tf[internal/terraform<br/>state and plan parsing<br/>attribute comparison]
+        graph[internal/graph<br/>dependency edges<br/>blast radius]
+        risk[internal/risk<br/>four-dimension scoring]
+        ui[internal/ui<br/>tables, diffs, formats]
+
+        tf --> graph
+        tf --> risk
+        graph --> ui
+        risk --> ui
+    end
+
+    subgraph outputs [Outputs]
+        direction TB
+        stdout["stdout<br/>table, json, yaml, csv, tsv"]
+        stderr["stderr<br/>progress, warnings, errors"]
+        code["exit code<br/>0 clean, 3 findings, 1 failed"]
+    end
+
+    state --> tf
+    live --> tf
+    plan --> tf
+    ui --> stdout
+    ui --> stderr
+    ui --> code
+
+    classDef in fill:#e8f4f8,stroke:#0969da,color:#111
+    classDef core fill:#f0f0ff,stroke:#8250df,color:#111
+    classDef out fill:#eaf5ea,stroke:#1a7f37,color:#111
+    class state,live,plan in
+    class tf,graph,risk,ui core
+    class stdout,stderr,code out
 ```
 
-Local analysis touches none of the server components. Details in [docs/architecture.md](docs/architecture.md).
+Local analysis touches no network and no server component. The optional hosted control plane is separate:
+
+```mermaid
+flowchart TB
+    subgraph plane [Control plane, optional and not yet implemented]
+        direction LR
+        controller[controller<br/>scheduled scans<br/>event loops]
+        worker[worker<br/>queue consumers]
+        mcp[mcp-server<br/>Model Context Protocol]
+    end
+
+    subgraph stores [Backing services]
+        direction LR
+        pg[(PostgreSQL<br/>resources, drift, audit)]
+        redis[(Redis<br/>cache, locks)]
+        nats{{NATS<br/>event bus}}
+    end
+
+    controller --> pg
+    controller --> nats
+    worker --> nats
+    worker --> pg
+    mcp --> pg
+    controller --> redis
+
+    classDef svc fill:#fff4e6,stroke:#bc4c00,color:#111
+    classDef store fill:#f6f8fa,stroke:#57606a,color:#111
+    class controller,worker,mcp svc
+    class pg,redis,nats store
+```
+
+These are skeletons. See [Project status](#project-status). Details in [docs/architecture.md](docs/architecture.md).
 
 ---
 

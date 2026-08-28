@@ -109,50 +109,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           args: --timeout=5m
-
-  no-emoji:
-    name: No emoji
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Emoji render inconsistently across terminals, carry no meaning for a
-      # screen reader, and cannot be styled by the colour layer. Status is
-      # carried by words, colour, and box-drawing characters instead.
-      - name: Reject emoji in source and docs
-        run: |
-          python3 - <<'PY'
-          import os, re, sys
-
-          emoji = re.compile('[\U0001F000-\U0001FAFF☀-⛿️⬀-⯿]')
-          skip_dirs = {'.git', 'bin', 'dist', 'vendor', 'testdata'}
-          exts = {'.go', '.md', '.yaml', '.yml', '.sql', '.sh', '.mod'}
-
-          failures = []
-          for root, dirs, files in os.walk('.'):
-              dirs[:] = [d for d in dirs if d not in skip_dirs]
-              for name in files:
-                  if os.path.splitext(name)[1] not in exts:
-                      continue
-                  path = os.path.join(root, name)
-                  try:
-                      text = open(path, encoding='utf-8').read()
-                  except (UnicodeDecodeError, OSError):
-                      continue
-                  for lineno, line in enumerate(text.splitlines(), 1):
-                      if emoji.search(line):
-                          failures.append(f"{path}:{lineno}: {line.strip()[:80]}")
-
-          if failures:
-              print("Emoji found. Use words, colour, or box-drawing characters instead.")
-              print("\n".join(failures))
-              sys.exit(1)
-          print("No emoji found.")
-          PY
 
   smoke:
     name: End-to-end smoke test

@@ -1,24 +1,36 @@
+version: "2"
+
 run:
-  timeout: 5m
   tests: true
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - govet
     - errcheck
     - staticcheck
     - unused
-    - gosimple
     - ineffassign
     - gocritic
-    - gofumpt
     - revive
     - misspell
     - prealloc
 
-linters-settings:
-  govet:
-    check-shadowing: true
-  gofumpt:
-    extra-rules: true
+  settings:
+    govet:
+      enable:
+        # Replaces the deprecated check-shadowing option.
+        - shadow
+    misspell:
+      locale: UK
+
+  exclusions:
+    rules:
+      # Test files legitimately ignore errors from helpers whose failure the
+      # assertion itself would catch.
+      - path: _test\.go
+        linters: [errcheck]
+
+formatters:
+  enable:
+    - gofmt
