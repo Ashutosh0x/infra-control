@@ -227,9 +227,18 @@ jobs:
 
       - name: Every output format renders
         run: |
-          for format in table wide json yaml csv tsv name sarif; do
+          for format in table wide json yaml csv tsv name; do
             ./infractl state list testdata/terraform.tfstate -o "$format" > /dev/null \
               || (echo "format $format failed" && exit 1)
           done
           ./infractl state list testdata/terraform.tfstate \
             -o go-template='{{range .}}{{.Address}}{{"\n"}}{{end}}' > /dev/null
+
+          # SARIF is deliberately absent from that loop. A command with no
+          # SARIF representation must refuse rather than emit an empty
+          # document, because an empty SARIF upload tells GitHub that every
+          # previously reported finding has been fixed.
+          if ./infractl state list testdata/terraform.tfstate -o sarif > /dev/null 2>&1; then
+            echo "state list should refuse SARIF, but succeeded"
+            exit 1
+          fi
