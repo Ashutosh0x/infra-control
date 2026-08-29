@@ -69,14 +69,36 @@ builds:
       - -s -w -X github.com/ashutosh0x/infra-control/pkg/version.Version={{.Version}} -X github.com/ashutosh0x/infra-control/pkg/version.Commit={{.ShortCommit}} -X github.com/ashutosh0x/infra-control/pkg/version.BuildDate={{.Date}}
 
 archives:
-  - formats: [tar.gz]
+  # The CLI ships on its own. It is what people install, and Homebrew, Scoop,
+  # and the install instructions all reference this archive by id.
+  - id: infractl
+    ids: [infractl]
+    formats: [tar.gz]
     name_template: >-
-      {{ .ProjectName }}_
+      infractl_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+  # The control-plane binaries ship separately and are named so, because they
+  # are skeletons. Bundling them with the CLI would put a binary that does not
+  # run into the archive people install to get one that does.
+  - id: server
+    ids: [controller, worker, mcp-server]
+    formats: [tar.gz]
+    name_template: >-
+      infra-control-server_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
         formats: [zip]
@@ -114,7 +136,7 @@ homebrew_casks:
     # any non-empty value on a release to push the cask; without it a release
     # succeeds and simply skips this step, rather than failing at the end of a
     # build that otherwise worked.
-    skip_upload: '{{ if .Env.PUBLISH_TAPS }}false{{ else }}true{{ end }}'
+    skip_upload: '{{ if eq (envOrDefault "PUBLISH_TAPS" "") "" }}true{{ else }}false{{ end }}'
     hooks:
       post:
         install: |
@@ -131,7 +153,7 @@ scoops:
     description: Detect Terraform drift, score risk, and map blast radius, with no server and no cloud credentials
     license: Apache-2.0
     ids: [infractl]
-    skip_upload: '{{ if .Env.PUBLISH_TAPS }}false{{ else }}true{{ end }}'
+    skip_upload: '{{ if eq (envOrDefault "PUBLISH_TAPS" "") "" }}true{{ else }}false{{ end }}'
 
 dockers_v2:
   - ids: [infractl]
