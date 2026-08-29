@@ -1,13 +1,19 @@
-# Distroless rather than alpine: the CLI is a static binary that needs no shell,
-# no package manager, and no libc. Everything absent from the image is something
-# that cannot be exploited in it.
+# Distroless rather than alpine: the CLI is a static binary that needs no
+# shell, no package manager, and no libc. Everything absent from the image is
+# something that cannot be exploited in it.
 FROM gcr.io/distroless/static-debian12:nonroot
 
-COPY infractl /usr/local/bin/infractl
+# GoReleaser's dockers_v2 build context holds the already-compiled binaries
+# arranged by platform, as linux/amd64/infractl and linux/arm64/infractl.
+# TARGETPLATFORM is supplied by buildx and selects the right one, which is what
+# lets a single Dockerfile serve a multi-architecture manifest.
+ARG TARGETPLATFORM
 
-# The analysis commands read files and write to stdout. Running as a
-# non-root user costs nothing and means a mounted working directory
-# cannot be modified by the container.
+COPY $TARGETPLATFORM/infractl /usr/local/bin/infractl
+
+# The analysis commands read files and write to stdout. Running as a non-root
+# user costs nothing and means a mounted working directory cannot be modified
+# by the container.
 USER nonroot:nonroot
 WORKDIR /work
 
