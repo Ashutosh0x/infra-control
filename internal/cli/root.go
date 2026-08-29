@@ -155,8 +155,8 @@ func init() {
 	// Group commands so that `infractl --help` reads as a map of the tool rather
 	// than one flat alphabetical list.
 	rootCmd.AddGroup(
-		&cobra.Group{ID: "analyse", Title: "Local analysis (no server required):"},
-		&cobra.Group{ID: "platform", Title: "Control plane (requires a server):"},
+		&cobra.Group{ID: "analyse", Title: "Analysis:"},
 		&cobra.Group{ID: "system", Title: "Configuration and diagnostics:"},
 	)
+	registerPreviewGroups()
 }

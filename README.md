@@ -119,48 +119,25 @@ infractl completion powershell | Out-String | Invoke-Expression
 
 ## Quick start
 
-### 1. See what state holds
+### See it work, with no setup
 
 ```bash
-infractl state inspect terraform.tfstate
+infractl demo
 ```
 
-```
-  state file:         terraform.tfstate
-  format version:     4
-  written by:         Terraform 1.9.5
-  serial:             42
-  managed resources:  5
-  providers:          aws
-  outputs:            2 (1 sensitive)
+Runs the whole pipeline against fixtures embedded in the binary. Nothing is read from your machine, nothing leaves it, and it drives the same code a real scan does.
 
-Resource types
---------------
-TYPE                  COUNT
---------------------  -----
-aws_subnet                2
-aws_db_instance           1
-aws_s3_bucket             1
-aws_vpc                   1
+### 1. Capture what is actually live
+
+```bash
+infractl snapshot from-plan
 ```
 
-### 2. Capture what is actually live
+This runs `terraform plan -refresh-only` and `terraform show -json` for you, then extracts the refreshed attribute values Terraform read back from your providers. It is a live read of your infrastructure, performed by Terraform, using credentials you already have configured. No new permissions, nothing sent anywhere.
 
-Drift detection compares state against a **live snapshot**: a JSON file mapping Terraform addresses to the attributes observed on the real resource.
+> Terraform refreshes only what it manages, so a snapshot built this way can never contain an **unmanaged** resource. For those you need an inventory read — see [docs/live-snapshots.md](docs/live-snapshots.md).
 
-```json
-{
-  "captured_at": "2026-08-29T09:00:00Z",
-  "provider": "aws",
-  "resources": {
-    "aws_s3_bucket.assets": { "bucket": "prod-assets", "acl": "public-read" }
-  }
-}
-```
-
-Keeping this a file rather than a built-in cloud call is deliberate. It means drift detection runs in a pipeline with no cloud credentials, and the snapshot can be produced by whatever already has read access — a read-only role, an existing inventory export, or Steampipe. See [docs/live-snapshots.md](docs/live-snapshots.md).
-
-### 3. Find the drift
+### 2. Find the drift
 
 ```bash
 infractl drift scan --state terraform.tfstate --live live.json --show-diff
@@ -178,14 +155,38 @@ aws_s3_bucket.assets [critical]
   - server_side_encryption_configuration.rule = {"sse_algorithm":"AES256"}
   ~ acl "private" -> "public-read"
 
-aws_subnet.private[1] [medium]
-  ~ cidr_block "10.0.2.0/24" -> "10.0.99.0/24"
-  ~ tags.environment "production" -> "staging"
-
 4 finding(s) across 5 managed resources: 1 critical, 1 high, 2 medium
 ```
 
-The bucket scores critical because two security-relevant attributes moved at once: encryption was removed and the ACL went public. A tag edit on the same resource would have scored info.
+The bucket scores critical because two security-relevant attributes moved at once: encryption was removed and the ACL went public. A tag edit would have scored info.
+
+### 3. Get the commands that fix it
+
+```bash
+infractl drift scan --state terraform.tfstate --live live.json --fix
+```
+
+Every finding has exactly one of three safe resolutions, determined by its kind, not by judgement:
+
+| Finding | Resolutions offered |
+| --- | --- |
+| modified | revert with `apply -target`, or accept with `apply -refresh-only -target` |
+| missing in live | recreate with `apply -target`, or record the deletion with `-refresh-only` |
+| unmanaged | adopt it with a generated `import` block |
+
+Nothing is executed. The tool proposes and prints the blast radius; a person applies. Measuring a risk and then taking it anyway would give up the reason to trust the measurement.
+
+```bash
+infractl drift scan ... --emit-import imports.tf   # just the import blocks
+```
+
+### If something looks wrong
+
+```bash
+infractl doctor
+```
+
+Checks the state file, snapshot freshness, ignore-rule expiry, config parsing, and the Terraform binary. Every failure names the command that fixes it.
 
 ---
 
@@ -195,6 +196,11 @@ The bucket scores critical because two security-relevant attributes moved at onc
 
 | Feature | Command | What it does |
 | --- | --- | --- |
+| Snapshot capture | `snapshot from-plan` | Build the live snapshot from a Terraform refresh-only plan |
+| Remediation output | `drift scan --fix` | Revert/accept commands and import blocks; runs nothing |
+| Coverage metric | `drift scan` | How much of the observed estate Terraform actually manages |
+| Diagnostics | `doctor` | Validates inputs and names the fix for each failure |
+| Zero-setup demo | `demo` | Full pipeline against embedded fixtures |
 | State inspection | `state inspect` | Format version, serial, lineage, provider and type breakdown |
 | Resource listing | `state list` | Every managed instance, filterable by type, provider, module |
 | Attribute view | `state show` | Full attributes for one resource, secrets masked |
@@ -371,7 +377,7 @@ infractl
 └── version                         Version, commit, build info
 ```
 
-Commands for the hosted control plane (`discover`, `policy`, `compliance`, `cost`, `security`, `remediate`, `audit`) are present in the CLI surface but return an explicit error stating that the server is not configured. They do not print placeholder results. See [Project status](#project-status).
+Commands for the hosted control plane (`discover`, `policy`, `compliance`, `cost`, `security`, `remediate`, `audit`) have no implementation and are **excluded from default builds**, so `--help` lists only what the tool can actually do. Build with `-tags preview` to see them; they return an explicit error rather than a placeholder result. See [Project status](#project-status).
 
 ### Global flags
 

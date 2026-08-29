@@ -1,0 +1,46 @@
+{
+  "captured_at": "2026-08-29T05:16:43.7354008Z",
+  "provider": "aws",
+  "resources": {
+    "aws_s3_bucket.assets": {
+      "acl": "public-read",
+      "bucket": "prod-assets",
+      "id": "prod-assets",
+      "server_side_encryption_configuration": {},
+      "tags": {
+        "cost-center": "eng",
+        "environment": "production",
+        "owner": "platform"
+      }
+    },
+    "aws_subnet.private[0]": {
+      "availability_zone": "us-east-1a",
+      "cidr_block": "10.0.1.0/24",
+      "id": "subnet-1111",
+      "tags": {
+        "environment": "production"
+      }
+    },
+    "aws_subnet.private[1]": {
+      "availability_zone": "us-east-1b",
+      "cidr_block": "10.0.99.0/24",
+      "id": "subnet-2222",
+      "tags": {
+        "environment": "staging"
+      }
+    },
+    "aws_vpc.main": {
+      "cidr_block": "10.0.0.0/16",
+      "enable_dns_hostnames": true,
+      "id": "vpc-0a1b2c3d",
+      "tags": {
+        "environment": "production",
+        "owner": "platform"
+      }
+    },
+    "module.vpc.aws_route_table.rt": {
+      "id": "rtb-9999",
+      "vpc_id": "vpc-0a1b2c3d"
+    }
+  }
+}

@@ -1,0 +1,190 @@
+package cli
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/ashutosh0x/infra-control/internal/ui"
+)
+
+// Remediation output.
+//
+// Every drift finding has exactly one of three safe resolutions, and which one
+// applies is determined by the kind of finding, not by judgement:
+//
+//	modified         the live resource disagrees with state. Either revert it
+//	                 (terraform apply -target) or accept it into state
+//	                 (terraform apply -refresh-only -target).
+//	missing in live  the resource was deleted outside Terraform. A plain apply
+//	                 recreates it; -refresh-only records the deletion instead.
+//	unmanaged        Terraform does not track it. An import block adopts it.
+//
+// This is emitted as commands and HCL for a human to read, run, and commit.
+// Nothing here executes anything. The tool proposes; a person applies. That
+// separation is deliberate: the blast radius of an apply is exactly what this
+// tool exists to measure, and a tool that measures a risk and then takes it
+// anyway has given up the reason to trust it.
+
+// remediationPlan is the set of proposed actions for a scan.
+type remediationPlan struct {
+	// Imports are HCL import blocks for unmanaged resources.
+	Imports []importBlock `json:"imports,omitempty"`
+	// Reverts are commands that would restore a resource to match state.
+	Reverts []remediationStep `json:"reverts,omitempty"`
+	// Accepts are commands that would record the live state as intended.
+	Accepts []remediationStep `json:"accepts,omitempty"`
+}
+
+// importBlock is a Terraform import block for one untracked resource.
+type importBlock struct {
+	// To is the Terraform address the resource would be adopted as.
+	To string `json:"to"`
+	// ID is the provider-specific import identifier.
+	ID string `json:"id"`
+	// IDSource names the attribute the identifier came from, so a reader can
+	// check it rather than trusting it.
+	IDSource string `json:"id_source"`
+	// Confident is false when no obvious identifier attribute was present and
+	// the ID needs a human to supply it.
+	Confident bool `json:"confident"`
+}
+
+// remediationStep is one proposed command.
+type remediationStep struct {
+	Address string `json:"address"`
+	Command string `json:"command"`
+	Effect  string `json:"effect"`
+}
+
+// importIDAttributes are the attributes providers most often accept as an
+// import identifier, in the order they should be preferred.
+//
+// This is a heuristic and is reported as one: the block carries the attribute
+// the value came from so a reviewer can verify it before running anything.
+// Import identifier formats are provider-specific and some are composite,
+// which no generic rule can derive.
+var importIDAttributes = []string{"id", "arn", "name", "bucket", "self_link"}
+
+// buildRemediation derives the proposed actions for a set of findings.
+func buildRemediation(report driftReport, live *liveSnapshot) remediationPlan {
+	var plan remediationPlan
+
+	for _, finding := range report.Findings {
+		switch finding.Kind {
+		case "unmanaged":
+			plan.Imports = append(plan.Imports, deriveImport(finding.Address, live))
+
+		case "modified":
+			plan.Reverts = append(plan.Reverts, remediationStep{
+				Address: finding.Address,
+				Command: fmt.Sprintf("terraform apply -target=%q", finding.Address),
+				Effect:  "changes the live resource back to what state records",
+			})
+			plan.Accepts = append(plan.Accepts, remediationStep{
+				Address: finding.Address,
+				Command: fmt.Sprintf("terraform apply -refresh-only -target=%q", finding.Address),
+				Effect:  "records the live values in state, leaving infrastructure untouched",
+			})
+
+		case "missing_in_live":
+			plan.Reverts = append(plan.Reverts, remediationStep{
+				Address: finding.Address,
+				Command: fmt.Sprintf("terraform apply -target=%q", finding.Address),
+				Effect:  "recreates the deleted resource",
+			})
+			plan.Accepts = append(plan.Accepts, remediationStep{
+				Address: finding.Address,
+				Command: fmt.Sprintf("terraform apply -refresh-only -target=%q", finding.Address),
+				Effect:  "records the deletion in state; the resource stays gone",
+			})
+		}
+	}
+
+	sort.Slice(plan.Imports, func(i, j int) bool { return plan.Imports[i].To < plan.Imports[j].To })
+	return plan
+}
+
+// deriveImport builds an import block for an untracked resource.
+func deriveImport(address string, live *liveSnapshot) importBlock {
+	block := importBlock{To: address, ID: "REPLACE_ME", IDSource: "none found"}
+
+	attrs, present := live.Resources[address]
+	if !present {
+		return block
+	}
+
+	for _, key := range importIDAttributes {
+		value, ok := attrs[key].(string)
+		if !ok || value == "" {
+			continue
+		}
+		block.ID = value
+		block.IDSource = key
+		block.Confident = true
+		return block
+	}
+	return block
+}
+
+// renderImportHCL formats import blocks as Terraform configuration.
+func renderImportHCL(blocks []importBlock) string {
+	var b strings.Builder
+
+	b.WriteString("# Generated by infractl. Review before applying.\n")
+	b.WriteString("#\n")
+	b.WriteString("# Import identifiers are provider-specific and some are composite. Each\n")
+	b.WriteString("# block records which attribute its id came from so you can check it.\n")
+	b.WriteString("# Run `terraform plan` after adding these: a correct import shows no\n")
+	b.WriteString("# changes for the imported resource.\n\n")
+
+	for _, block := range blocks {
+		if !block.Confident {
+			fmt.Fprintf(&b, "# No identifier attribute found for this resource. Supply the id\n")
+			fmt.Fprintf(&b, "# your provider expects; see its import documentation.\n")
+		} else {
+			fmt.Fprintf(&b, "# id taken from the %q attribute\n", block.IDSource)
+		}
+		fmt.Fprintf(&b, "import {\n  to = %s\n  id = %q\n}\n\n", block.To, block.ID)
+	}
+
+	return b.String()
+}
+
+// printRemediation writes the proposed actions in human-readable form.
+func printRemediation(plan remediationPlan) {
+	if len(plan.Imports) == 0 && len(plan.Reverts) == 0 {
+		return
+	}
+
+	if len(plan.Imports) > 0 {
+		rt.UI.Heading("Adopt unmanaged resources")
+		rt.UI.Println()
+		rt.UI.Raw(renderImportHCL(plan.Imports))
+	}
+
+	if len(plan.Reverts) > 0 {
+		rt.UI.Heading("Resolve drifted resources")
+		rt.UI.Println()
+		rt.UI.Printf("  %s\n\n", rt.UI.Apply(ui.StyleMuted,
+			"Each resource has two safe resolutions. Revert changes infrastructure; "+
+				"accept changes only state."))
+
+		accepts := make(map[string]string, len(plan.Accepts))
+		for _, step := range plan.Accepts {
+			accepts[step.Address] = step.Command
+		}
+
+		for _, step := range plan.Reverts {
+			rt.UI.Println("  " + rt.UI.Apply(ui.StyleBold, step.Address))
+			rt.UI.Printf("    %s %s\n", rt.UI.Apply(ui.StyleRemoved, "revert"), step.Command)
+			if accept, ok := accepts[step.Address]; ok {
+				rt.UI.Printf("    %s %s\n", rt.UI.Apply(ui.StyleAdded, "accept"), accept)
+			}
+			rt.UI.Println()
+		}
+	}
+
+	rt.UI.Printf("%s\n", rt.UI.Apply(ui.StyleMuted,
+		"Nothing above has been run. Review, then apply what you intend."))
+}

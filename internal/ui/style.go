@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -384,3 +385,35 @@ func Indent(s, prefix string) string {
 // validUTF8 reports whether s is well-formed UTF-8, used to guard against
 // emitting raw bytes from cloud APIs straight into the terminal.
 func validUTF8(s string) bool { return utf8.ValidString(s) }
+
+// HumanDuration renders a duration the way a person would say it.
+//
+// time.Duration's own String gives "720h0m0s" for a month, which is precise and
+// unreadable. Snapshot age is the number people judge a scan's trustworthiness
+// by, so it has to land at a glance.
+func HumanDuration(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		hours := int(d.Hours())
+		if minutes := int(d.Minutes()) % 60; minutes > 0 {
+			return fmt.Sprintf("%dh%dm", hours, minutes)
+		}
+		return fmt.Sprintf("%dh", hours)
+	case d < 7*24*time.Hour:
+		return fmt.Sprintf("%dd", int(d.Hours()/24))
+	case d < 30*24*time.Hour:
+		return fmt.Sprintf("%dw", int(d.Hours()/(24*7)))
+	case d < 365*24*time.Hour:
+		return fmt.Sprintf("%dmo", int(d.Hours()/(24*30)))
+	default:
+		return fmt.Sprintf("%dy", int(d.Hours()/(24*365)))
+	}
+}

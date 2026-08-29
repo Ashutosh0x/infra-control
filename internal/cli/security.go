@@ -1,3 +1,12 @@
+//go:build preview
+
+// This command has no working implementation. It is excluded from default
+// builds so that `infractl --help` lists only what the tool can actually do.
+//
+// A CLI whose help text advertises commands that return "not configured"
+// invites the reader to judge the whole tool a scaffold, which is unfair to
+// the commands that work. Build with `-tags preview` to see it.
+
 package cli
 
 import (

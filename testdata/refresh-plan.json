@@ -1,0 +1,132 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "aws_vpc.main",
+            "mode": "managed",
+            "type": "aws_vpc",
+            "name": "main",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "values": {
+              "id": "vpc-0a1b2c3d",
+              "cidr_block": "10.0.0.0/16",
+              "enable_dns_hostnames": true,
+              "tags": {
+                "environment": "production",
+                "owner": "platform"
+              }
+            }
+          },
+          {
+            "address": "aws_subnet.private[0]",
+            "mode": "managed",
+            "type": "aws_subnet",
+            "name": "private",
+            "index": 0,
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "values": {
+              "id": "subnet-1111",
+              "cidr_block": "10.0.1.0/24",
+              "availability_zone": "us-east-1a",
+              "tags": {
+                "environment": "production"
+              }
+            }
+          },
+          {
+            "address": "aws_subnet.private[1]",
+            "mode": "managed",
+            "type": "aws_subnet",
+            "name": "private",
+            "index": 1,
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "values": {
+              "id": "subnet-2222",
+              "cidr_block": "10.0.99.0/24",
+              "availability_zone": "us-east-1b",
+              "tags": {
+                "environment": "staging"
+              }
+            }
+          },
+          {
+            "address": "aws_s3_bucket.assets",
+            "mode": "managed",
+            "type": "aws_s3_bucket",
+            "name": "assets",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "values": {
+              "id": "prod-assets",
+              "bucket": "prod-assets",
+              "acl": "public-read",
+              "server_side_encryption_configuration": {},
+              "tags": {
+                "environment": "production",
+                "owner": "platform",
+                "cost-center": "eng"
+              }
+            }
+          },
+          {
+            "address": "data.aws_caller_identity.current",
+            "mode": "data",
+            "type": "aws_caller_identity",
+            "name": "current",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "values": {
+              "account_id": "123456789012"
+            }
+          }
+        ],
+        "child_modules": [
+          {
+            "address": "module.vpc",
+            "resources": [
+              {
+                "address": "module.vpc.aws_route_table.rt",
+                "mode": "managed",
+                "type": "aws_route_table",
+                "name": "rt",
+                "provider_name": "registry.terraform.io/hashicorp/aws",
+                "values": {
+                  "id": "rtb-9999",
+                  "vpc_id": "vpc-0a1b2c3d"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "resource_drift": [
+    {
+      "address": "aws_s3_bucket.assets",
+      "type": "aws_s3_bucket",
+      "name": "assets",
+      "mode": "managed",
+      "change": {
+        "actions": [
+          "update"
+        ]
+      }
+    },
+    {
+      "address": "aws_subnet.private[1]",
+      "type": "aws_subnet",
+      "name": "private",
+      "mode": "managed",
+      "change": {
+        "actions": [
+          "update"
+        ]
+      }
+    }
+  ],
+  "resource_changes": []
+}

@@ -57,6 +57,11 @@ jobs:
       - name: Build
         run: go build ./...
 
+      # The preview-tagged commands are excluded from default builds, so
+      # nothing else would catch them breaking.
+      - name: Build with preview commands
+        run: go build -tags preview ./...
+
       - name: Vet
         run: go vet ./...
 
@@ -130,6 +135,45 @@ jobs:
       # These assertions cover the contract the README documents: the exit code
       # split, machine-readable output staying parseable, and secrets never
       # reaching the payload.
+      - name: Demo runs with no setup
+        run: |
+          # The demo drives the real code path against embedded fixtures, so
+          # it breaking means the pipeline broke, not just the demo.
+          ./infractl demo > demo.txt 2>&1
+          grep -q 'aws_s3_bucket.assets' demo.txt || {
+            echo 'demo did not report the seeded drift'; cat demo.txt; exit 1; }
+          grep -q 'affects 3 resources' demo.txt || {
+            echo 'demo did not report blast radius'; cat demo.txt; exit 1; }
+
+      - name: Snapshot extraction from a refresh-only plan
+        run: |
+          ./infractl snapshot from-plan testdata/refresh-plan.json --out extracted.json --quiet
+
+          # Five managed resources across the root and a child module; the
+          # data source must be excluded.
+          count=$(jq '.resources | length' extracted.json)
+          test "$count" -eq 5 || { echo "expected 5 resources, got $count"; exit 1; }
+          jq -e '.resources | has("module.vpc.aws_route_table.rt")' extracted.json > /dev/null
+          jq -e '.resources | has("data.aws_caller_identity.current") | not' extracted.json > /dev/null
+
+          # The extracted snapshot must drive a real scan.
+          ./infractl drift scan --state testdata/terraform.tfstate --live extracted.json --no-ignore -o json | jq -e '.findings | length > 0' > /dev/null
+
+      - name: Doctor exits non-zero on a stale snapshot
+        run: |
+          jq '.captured_at = "2020-01-01T00:00:00Z"' testdata/live.json > stale.json
+          set +e
+          ./infractl doctor --state testdata/terraform.tfstate --live stale.json > doctor.txt 2>&1
+          code=$?
+          set -e
+          test "$code" -eq 4 || { echo "expected exit 4, got $code"; cat doctor.txt; exit 1; }
+
+      - name: Remediation output runs nothing
+        run: |
+          ./infractl drift scan --state testdata/terraform.tfstate --live testdata/live.json --no-ignore --emit-import imports.tf --quiet -o json > /dev/null
+          grep -q '^import {' imports.tf || { echo 'no import block emitted'; cat imports.tf; exit 1; }
+          grep -q 'aws_security_group.orphan' imports.tf || { echo 'wrong resource imported'; exit 1; }
+
       - name: State parsing
         run: |
           ./infractl state inspect testdata/terraform.tfstate

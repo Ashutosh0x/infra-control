@@ -25,6 +25,8 @@ var (
 	driftIncludeUnm bool
 	driftIgnorePath string
 	driftNoIgnore   bool
+	driftFix        bool
+	driftEmitImport string
 )
 
 var driftCmd = &cobra.Command{
@@ -132,9 +134,31 @@ type driftReport struct {
 	Suppressed int `json:"suppressed"`
 	// SuppressedBy maps each rule that fired to how many findings it hid.
 	SuppressedBy map[string]int `json:"suppressed_by,omitempty"`
+	// Coverage reports how much of the live estate Terraform actually manages.
+	Coverage coverageReport `json:"coverage"`
 }
 
-func runDriftScan(_ *cobra.Command, _ []string) error {
+// coverageReport answers "how much of what exists is under Terraform".
+//
+// It is the number that makes an unmanaged finding mean something. One
+// untracked security group is a curiosity; eighty of them, against four hundred
+// managed resources, is a different conversation. It is also the figure a team
+// can track over time to show the gap closing.
+//
+// The denominator is the union of what state manages and what the snapshot
+// observed, because a resource in state but absent live still counts as
+// something Terraform is trying to manage.
+type coverageReport struct {
+	Managed   int     `json:"managed"`
+	Unmanaged int     `json:"unmanaged"`
+	Total     int     `json:"total"`
+	Percent   float64 `json:"percent"`
+	// Partial marks a snapshot that cannot see unmanaged resources at all, so
+	// a reader does not mistake "none found" for "none exist".
+	Partial bool `json:"partial"`
+}
+
+func runDriftScan(cmd *cobra.Command, _ []string) error {
 	if err := requireFile(driftStatePath, "state file (--state)"); err != nil {
 		return err
 	}
@@ -213,9 +237,10 @@ func runDriftScan(_ *cobra.Command, _ []string) error {
 		CountsBySeverit: countBySeverity(findings),
 		Suppressed:      len(suppressed),
 		SuppressedBy:    countByRule(suppressed),
+		Coverage:        computeCoverage(managed, snapshot, driftIncludeUnm),
 	}
 	if !snapshot.CapturedAt.IsZero() {
-		report.SnapshotAge = time.Since(snapshot.CapturedAt).Round(time.Minute).String()
+		report.SnapshotAge = ui.HumanDuration(time.Since(snapshot.CapturedAt))
 	}
 
 	if err := rt.write(driftView(report)); err != nil {
@@ -230,6 +255,31 @@ func runDriftScan(_ *cobra.Command, _ []string) error {
 
 	if !rt.Format.IsMachine() {
 		printDriftSummary(report)
+	}
+
+	remediation := buildRemediation(report, snapshot)
+
+	if driftEmitImport != "" {
+		if len(remediation.Imports) == 0 {
+			rt.UI.Warn("No unmanaged resources to import; %s not written.", driftEmitImport)
+		} else if err := os.WriteFile(driftEmitImport,
+			[]byte(renderImportHCL(remediation.Imports)), 0o600); err != nil {
+			return failf(ExitError, "write import blocks to %s: %w", driftEmitImport, err)
+		} else {
+			rt.UI.Success("Wrote %d import block(s) to %s", len(remediation.Imports), driftEmitImport)
+		}
+	}
+
+	if driftFix && !rt.Format.IsMachine() {
+		printRemediation(remediation)
+	}
+
+	if !rt.Format.IsMachine() && !driftFix && len(report.Findings) > 0 {
+		rt.UI.Println()
+		hint(cmd, [][2]string{
+			{"How to resolve", "infractl drift scan ... --fix"},
+			{"See the diff", "infractl drift scan ... --show-diff"},
+		})
 	}
 
 	if failSet {
@@ -654,6 +704,10 @@ func init() {
 		"path to the ignore file (default: nearest .infractl-ignore.yaml, searching upwards)")
 	f.BoolVar(&driftNoIgnore, "no-ignore", false,
 		"ignore the ignore file and report every finding, for auditing what suppression hides")
+	f.BoolVar(&driftFix, "fix", false,
+		"print the commands and import blocks that would resolve each finding; runs nothing")
+	f.StringVar(&driftEmitImport, "emit-import", "",
+		"write Terraform import blocks for unmanaged resources to this file")
 
 	_ = driftScanCmd.MarkFlagRequired("state")
 	_ = driftScanCmd.MarkFlagRequired("live")
@@ -730,4 +784,33 @@ func countByRule(suppressed []suppression) map[string]int {
 		counts[s.rule.Describe()]++
 	}
 	return counts
+}
+
+// computeCoverage measures how much of the observed estate Terraform manages.
+func computeCoverage(managed []terraform.StateResource, snapshot *liveSnapshot, countedUnmanaged bool) coverageReport {
+	inState := make(map[string]struct{}, len(managed))
+	for _, resource := range managed {
+		inState[resource.Address] = struct{}{}
+	}
+
+	unmanaged := 0
+	for address := range snapshot.Resources {
+		if _, tracked := inState[address]; !tracked {
+			unmanaged++
+		}
+	}
+
+	report := coverageReport{
+		Managed:   len(managed),
+		Unmanaged: unmanaged,
+		Total:     len(managed) + unmanaged,
+		// A snapshot built from a refresh-only plan contains only managed
+		// resources by construction, so a coverage figure from it would always
+		// read 100% and mean nothing.
+		Partial: !countedUnmanaged || unmanaged == 0,
+	}
+	if report.Total > 0 {
+		report.Percent = float64(report.Managed) / float64(report.Total) * 100
+	}
+	return report
 }
