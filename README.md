@@ -180,6 +180,41 @@ Nothing is executed. The tool proposes and prints the blast radius; a person app
 infractl drift scan ... --emit-import imports.tf   # just the import blocks
 ```
 
+### 4. Report only what changed
+
+```bash
+infractl notify --state terraform.tfstate --live live.json
+```
+
+`drift scan` reports every finding, every time. `notify` reports what is **new**
+since the last scan, what has just been **fixed**, and what has been open long
+enough to need a decision. A finding that is merely still true is not news, and
+repeating it nightly is how a channel stops being read.
+
+```
+EVENT     TIER     SEVERITY  ADDRESS                    OWNER
+--------  -------  --------  -------------------------  ----------
+new       page     CRITICAL  aws_s3_bucket.assets       platform
+new       notify   HIGH      aws_db_instance.primary    unowned
+new       digest   MEDIUM    aws_subnet.private[1]      unowned
+```
+
+Run it again with nothing changed and it says so, in one line, and sends
+nothing.
+
+| Tier | Default trigger | Meaning |
+| --- | --- | --- |
+| `page` | new + critical + security | Something changed, it matters, and it changed just now |
+| `notify` | new + high | Worth a channel during working hours |
+| `digest` | everything else, plus resolved and aging | Batched |
+
+History lives in `.infractl/ledger.jsonl`. Commit it: drift history becomes
+reviewable and diffable, and the scan that updates it leaves its own audit
+trail. Design notes in [docs/notifications.md](docs/notifications.md).
+
+Notifications carry attribute **paths, never values** — enforced by the type
+system, not a flag. See [SECURITY.md](SECURITY.md#the-notification-path).
+
 ### If something looks wrong
 
 ```bash
@@ -199,6 +234,8 @@ Checks the state file, snapshot freshness, ignore-rule expiry, config parsing, a
 | Snapshot capture | `snapshot from-plan` | Build the live snapshot from a Terraform refresh-only plan |
 | Remediation output | `drift scan --fix` | Revert/accept commands and import blocks; runs nothing |
 | Coverage metric | `drift scan` | How much of the observed estate Terraform actually manages |
+| Change notifications | `notify` | Reports what is new, fixed, or aging since the last scan, not everything every time |
+| Suppression management | `ignore add` | Writes a suppression rule with a mandatory reason |
 | Diagnostics | `doctor` | Validates inputs and names the fix for each failure |
 | Zero-setup demo | `demo` | Full pipeline against embedded fixtures |
 | State inspection | `state inspect` | Format version, serial, lineage, provider and type breakdown |

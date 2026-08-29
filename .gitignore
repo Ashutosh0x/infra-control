@@ -44,3 +44,8 @@ Thumbs.db
 
 # GoReleaser build output
 /dist/
+
+# Drift history ledger. Committing it is the intended workflow (see
+# docs/notifications.md), so it is deliberately NOT ignored. The temporary
+# file the atomic write uses is.
+.infractl/*.tmp

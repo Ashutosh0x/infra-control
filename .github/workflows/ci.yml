@@ -174,6 +174,40 @@ jobs:
           grep -q '^import {' imports.tf || { echo 'no import block emitted'; cat imports.tf; exit 1; }
           grep -q 'aws_security_group.orphan' imports.tf || { echo 'wrong resource imported'; exit 1; }
 
+      - name: Notify reports only what changed
+        run: |
+          rm -rf notifytest && mkdir notifytest
+          cp testdata/terraform.tfstate testdata/live.json notifytest/
+          cd notifytest
+
+          # First run: every finding is new.
+          ../infractl notify --state terraform.tfstate --live live.json -o json > first.json
+          new=$(jq '[.events[] | select(.kind == "new")] | length' first.json)
+          test "$new" -eq 4 || { echo "expected 4 new events, got $new"; exit 1; }
+
+          # Only the critical security finding pages.
+          jq -e '[.events[] | select(.tier == "page")] | length == 1' first.json > /dev/null
+
+          # Second run over identical input: nothing is new. This is the
+          # property the whole layer exists for.
+          ../infractl notify --state terraform.tfstate --live live.json -o json > second.json
+          events=$(jq '.events | length' second.json)
+          test "$events" -eq 0 || { echo "a repeat scan produced $events events"; cat second.json; exit 1; }
+
+          # Fixing a finding produces exactly one resolved event.
+          jq '.resources["aws_s3_bucket.assets"].acl = "private"' live.json > tmp && mv tmp live.json
+          ../infractl notify --state terraform.tfstate --live live.json -o json > third.json
+          jq -e '[.events[] | select(.kind == "resolved")] | length >= 1' third.json > /dev/null
+
+      - name: Notifications carry no attribute values
+        run: |
+          cd notifytest
+          ../infractl notify --state terraform.tfstate --live live.json \n            --no-save -o json > payload.json
+          if grep -q 'correct-horse-battery-staple' payload.json; then
+            echo 'a sensitive value reached a notification payload'
+            exit 1
+          fi
+
       - name: State parsing
         run: |
           ./infractl state inspect testdata/terraform.tfstate

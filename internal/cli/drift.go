@@ -814,3 +814,40 @@ func computeCoverage(managed []terraform.StateResource, snapshot *liveSnapshot, 
 	}
 	return report
 }
+
+// collectDrift runs the comparison and returns the raw inputs and findings.
+//
+// It exists so that `notify` reports on exactly what `drift scan` would find.
+// Two code paths producing two answers from the same files is the kind of
+// divergence nobody notices until an alert disagrees with a scan.
+//
+// Ignore rules are applied here, because a suppressed finding should not
+// become a notification either.
+func collectDrift() (*terraform.State, *liveSnapshot, []driftFinding, error) {
+	state, err := terraform.ParseStateFile(driftStatePath)
+	if err != nil {
+		return nil, nil, nil, failf(ExitError, "%w", err)
+	}
+
+	snapshot, err := readLiveSnapshot(driftLivePath)
+	if err != nil {
+		return nil, nil, nil, failf(ExitError, "%w", err)
+	}
+
+	findings := compareForDrift(state.ManagedResources(), snapshot, driftIncludeUnm)
+
+	rules, err := loadIgnoreRules()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	findings, _ = applyIgnoreRules(findings, rules)
+
+	sort.SliceStable(findings, func(i, j int) bool {
+		if findings[i].Score != findings[j].Score {
+			return findings[i].Score > findings[j].Score
+		}
+		return findings[i].Address < findings[j].Address
+	})
+
+	return state, snapshot, findings, nil
+}

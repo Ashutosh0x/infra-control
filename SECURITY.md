@@ -87,6 +87,65 @@ State, plan, and snapshot files are parsed with the standard library JSON decode
 
 No analysis command writes to a state file. Running against a copy of production state is safe, and running against production state itself does not modify it.
 
+## The notification path
+
+`infractl notify` is a second egress boundary, and is treated as one. A scan's
+output being safe does not make a notification safe: it lands somewhere with a
+wider audience than the terminal the scan ran in.
+
+### Values structurally cannot leave
+
+The type a notification is built from carries attribute **paths and
+severities, never values**. This is enforced by the type system rather than by
+a flag: there is no option to include values, because leaking one would have
+to be a compile error, not a configuration mistake.
+
+```
+acl changed on aws_s3_bucket.assets     <- sent
+acl changed from private to public-read <- never sent
+```
+
+### Cloud-derived strings are untrusted input
+
+Resource names and tag values come from an account that may contain resources
+an attacker created. A bucket tagged `<!channel> urgent`, or one whose name
+contains a terminal escape sequence, must never render as a mention, a link, or
+a control code.
+
+Every such string passes through `Sanitise`, which strips control characters,
+escapes platform markup, and bounds length. This is the same shape of problem
+as prompt injection, and the same defence applies: treat the data as data.
+
+### Webhook signing
+
+Outbound webhooks are signed with HMAC-SHA256 over `v1:timestamp:body`. The
+timestamp is inside the signed material, so a captured request cannot be
+replayed later with its signature intact.
+
+```
+X-Infractl-Signature: v1=<hex>
+X-Infractl-Timestamp: <unix seconds>
+```
+
+Receivers should verify in constant time and reject a timestamp outside a
+tolerance window. `notify.Verify` is exported so a Go receiver can share the
+implementation rather than reimplement a comparison that is easy to get wrong.
+
+Signing is skipped when no secret is set, and the run warns when that happens:
+an unsigned webhook gives the receiver no way to distinguish this tool from
+anyone who learned the URL.
+
+### Slack scopes
+
+The Slack sink needs `chat:write` and nothing else. Notably **not**
+`channels:history`, which would let a leaked token read the channel it posts
+to.
+
+### No telemetry
+
+There is none. Not opt-out, absent. The only outbound requests this tool makes
+are to sinks you configure.
+
 ## Building from source
 
 ```bash
