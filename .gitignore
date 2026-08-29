@@ -21,7 +21,11 @@ coverage.*
 # deliberately and are matched by the negations below.
 *.tfstate
 *.tfstate.*
+# Committed fixtures. testdata/ drives the tests; internal/cli/demodata is
+# embedded into the binary for `infractl demo`, so a missing file here is a
+# build failure rather than a test failure.
 !testdata/*.tfstate
+!internal/cli/demodata/*.tfstate
 .terraform/
 .terraform.lock.hcl
 tfplan
@@ -29,6 +33,7 @@ plan.json
 !testdata/plan.json
 live.json
 !testdata/live.json
+!internal/cli/demodata/live.json
 
 # Editor and OS
 .vscode/
