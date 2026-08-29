@@ -64,6 +64,10 @@ directory cannot be modified by the container.
 docker run --rm -v "$PWD:/work" ghcr.io/ashutosh0x/infractl:latest   drift scan --state terraform.tfstate --live live.json
 ```
 
+> The image is published on each release. GitHub creates new packages private
+> by default, so make `infractl` public under the repository's Packages
+> settings before this command works for anyone else.
+
 ### Binary download
 
 Grab a build from [Releases](https://github.com/Ashutosh0x/infra-control/releases). Binaries are static, with no runtime dependency.
@@ -288,7 +292,7 @@ The search path is `--config`, then `./.infractl.yaml`, then `$HOME/.infractl.ya
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/Ashutosh0x/infra-control
-    rev: v0.1.2
+    rev: v0.2.0
     hooks:
       - id: infractl-plan          # reject destructive plans
       - id: infractl-state-check   # catch truncated or half-written state
