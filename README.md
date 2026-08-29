@@ -2,14 +2,22 @@
 
 # infra-control
 
-**Read your Terraform state. Compare it to reality. Know what broke, what it costs you, and what it takes down with it.**
+**Read your Terraform state. Compare it to reality. Know what broke, who it belongs to, and what it takes down with it.**
 
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev)
-[![Terraform](https://img.shields.io/badge/Terraform-844FBA?style=flat&logo=terraform&logoColor=white)](https://www.terraform.io)
-[![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18?style=flat&logo=opentofu&logoColor=black)](https://opentofu.org)
-[![License](https://img.shields.io/badge/License-Apache_2.0-D22128?style=flat&logo=apache&logoColor=white)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/Ashutosh0x/infra-control/ci.yml?branch=main&style=flat&logo=githubactions&logoColor=white&label=CI)](https://github.com/Ashutosh0x/infra-control/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ashutosh0x/infra-control?style=flat)](https://goreportcard.com/report/github.com/ashutosh0x/infra-control)
+[![CI](https://img.shields.io/github/actions/workflow/status/Ashutosh0x/infra-control/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/Ashutosh0x/infra-control/actions/workflows/ci.yml)
+[![Go Reference](https://img.shields.io/badge/pkg.go.dev-reference-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://pkg.go.dev/github.com/ashutosh0x/infra-control)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ashutosh0x/infra-control?style=for-the-badge)](https://goreportcard.com/report/github.com/ashutosh0x/infra-control)
+[![Release](https://img.shields.io/github/v/release/Ashutosh0x/infra-control?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Ashutosh0x/infra-control/releases)
+[![License](https://img.shields.io/badge/Apache%202.0-D22128?style=for-the-badge&logo=apache&logoColor=white)](LICENSE)
+
+[![Go](https://img.shields.io/badge/Go%201.25-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
+[![Terraform](https://img.shields.io/badge/Terraform-844FBA?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io)
+[![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18?style=for-the-badge&logo=opentofu&logoColor=black)](https://opentofu.org)
+[![SARIF](https://img.shields.io/badge/SARIF%202.1.0-2088FF?style=for-the-badge&logo=github&logoColor=white)](https://sarifweb.azurewebsites.net)
+
+**No server. No agent. No cloud credentials. No telemetry.**
+
+State and drift detection work with any Terraform provider.<br/>Risk scoring rules are currently AWS-shaped.
 
 [Install](#installation) · [Quick start](#quick-start) · [Features](#features) · [Commands](#command-reference) · [CI](#continuous-integration) · [Docs](docs/) · [Discussions](https://github.com/Ashutosh0x/infra-control/discussions)
 
@@ -227,27 +235,31 @@ Checks the state file, snapshot freshness, ignore-rule expiry, config parsing, a
 
 ## Features
 
-### Analysis, no server required
+### The workflow
+
+| Step | Command | What it does |
+| --- | --- | --- |
+| Evaluate | `demo` | Full pipeline against embedded fixtures. No setup, no credentials, no network |
+| Capture | `snapshot from-plan` | Builds the live snapshot from a Terraform refresh-only plan, using credentials you already have |
+| Detect | `drift scan` | Modified, deleted, and unmanaged resources with property-level diffs |
+| Understand | `graph blast-radius` | Everything that breaks when a resource changes, by distance |
+| Resolve | `drift scan --fix` | The commands and import blocks that fix each finding. Runs nothing |
+| Suppress | `ignore add` | Writes a suppression rule; the reason is mandatory and the expiry is enforced |
+| Report | `notify` | What changed since last time, routed to whoever owns it |
+| Diagnose | `doctor` | Validates every input and names the fix for each failure |
+
+### Everything else
 
 | Feature | Command | What it does |
 | --- | --- | --- |
-| Snapshot capture | `snapshot from-plan` | Build the live snapshot from a Terraform refresh-only plan |
-| Remediation output | `drift scan --fix` | Revert/accept commands and import blocks; runs nothing |
-| Coverage metric | `drift scan` | How much of the observed estate Terraform actually manages |
-| Change notifications | `notify` | Reports what is new, fixed, or aging since the last scan, not everything every time |
-| Suppression management | `ignore add` | Writes a suppression rule with a mandatory reason |
-| Diagnostics | `doctor` | Validates inputs and names the fix for each failure |
-| Zero-setup demo | `demo` | Full pipeline against embedded fixtures |
 | State inspection | `state inspect` | Format version, serial, lineage, provider and type breakdown |
 | Resource listing | `state list` | Every managed instance, filterable by type, provider, module |
 | Attribute view | `state show` | Full attributes for one resource, secrets masked |
-| Drift detection | `drift scan` | Modified, deleted, and unmanaged resources with property-level diffs |
-| Plan analysis | `plan analyse` | Create/update/delete/replace counts, destructive-change isolation |
+| Plan analysis | `plan analyse` | Create/update/delete/replace counts, destructive changes isolated |
 | Risk scoring | `risk assess` | Security, reliability, cost, and compliance scored and weighted |
-| Blast radius | `graph blast-radius` | Everything that breaks when a resource changes, by distance |
 | Dependency listing | `graph deps` | Upstream or downstream neighbours of a resource |
 | Graph export | `graph export` | Graphviz DOT or Mermaid, renderable inline on GitHub |
-| Drift suppression | `.infractl-ignore.yaml` | Silence expected drift with a required reason and optional expiry |
+| Coverage metric | `drift scan` | How much of the observed estate Terraform actually manages |
 | GitHub code scanning | `-o sarif` | Findings in the Security tab, annotated on the pull request |
 
 ### Correctness details that matter
@@ -396,37 +408,72 @@ A clean scan still uploads a valid document with zero results, which is how GitH
 
 ```
 infractl
+├── demo                            Full pipeline against embedded fixtures, no setup
+├── doctor                          Check inputs and environment; names the fix for each failure
+│
+├── snapshot
+│   └── from-plan [plan.json]       Build a live snapshot from a refresh-only plan
+│
 ├── state
-│   ├── inspect <file>              Summarise a state file
-│   ├── list <file>                 List managed resources
-│   └── show <file> <address>       Show one resource's attributes
+│   ├── inspect <file>              Format version, serial, lineage, type breakdown
+│   ├── list <file>                 Every managed resource instance
+│   └── show <file> <address>       One resource's attributes, secrets masked
+│
 ├── drift
 │   └── scan                        Compare state against a live snapshot
+│       --show-diff                   property-level diff per finding
+│       --fix                         commands and import blocks that resolve each finding
+│       --emit-import <file>          write import blocks for unmanaged resources
+│       --fail-on <severity>          exit 3 at or above this severity
+│
 ├── plan
-│   └── analyse <plan.json>         Report what a plan changes and destroys
+│   └── analyse <plan.json>         What a plan changes, and what it destroys
+│
 ├── risk
-│   └── assess                      Score resources across four dimensions
+│   └── assess                      Security, reliability, cost, compliance
+│
 ├── graph
-│   ├── stats                       Node and edge counts
-│   ├── blast-radius <address>      What breaks if this changes
+│   ├── stats                       Node and edge counts, roots and leaves
+│   ├── blast-radius <address>      What breaks if this changes, by distance
 │   ├── deps <address>              What this depends on
-│   └── export                      DOT or Mermaid
-└── version                         Version, commit, build info
+│   └── export                      Graphviz DOT or Mermaid
+│
+├── ignore
+│   ├── add <address> --reason      Write a suppression rule; the reason is mandatory
+│   └── list                        Active and expired rules
+│
+├── notify                          What changed since the last scan, not everything
+│       --sink slack|github|webhook    where to deliver
+│       --no-save                      preview without recording history
+│
+└── version                         Version, commit, build information
 ```
 
-Commands for the hosted control plane (`discover`, `policy`, `compliance`, `cost`, `security`, `remediate`, `audit`) have no implementation and are **excluded from default builds**, so `--help` lists only what the tool can actually do. Build with `-tags preview` to see them; they return an explicit error rather than a placeholder result. See [Project status](#project-status).
+Seven commands for the unbuilt control plane (`discover`, `policy`, `compliance`, `cost`, `security`, `remediate`, `audit`) are **excluded from default builds**, so `--help` lists only what the tool can do. Build with `-tags preview` to see them; they return an explicit error rather than a placeholder. See [Project status](#project-status).
+
+### The two-minute path
+
+```bash
+infractl demo                                    # see it work, no setup
+infractl snapshot from-plan                      # capture your own live state
+infractl drift scan --state terraform.tfstate --live live.json --fix
+infractl doctor                                  # if anything looks wrong
+```
 
 ### Global flags
 
 | Flag | Default | Purpose |
 | --- | --- | --- |
-| `-o, --output` | `table` | Output format |
+| `-o, --output` | `table` | `table`, `wide`, `json`, `yaml`, `csv`, `tsv`, `name`, `sarif`, `go-template=TMPL` |
 | `-q, --quiet` | off | Suppress progress; results and errors still print |
 | `-v, --verbose` | off | Diagnostic logging on stderr |
 | `--color` | `auto` | `auto`, `always`, `never` |
 | `--no-color` | off | Shorthand for `--color=never` |
 | `--ascii` | off | ASCII symbols instead of box-drawing |
 | `--config` | | Config file path |
+| `--profile` | | Named block from the config file |
+
+Every flag has an `INFRACTL_`-prefixed environment variable and a config-file equivalent, in that precedence order. `--min-severity` reads `INFRACTL_MIN_SEVERITY`.
 
 ---
 
@@ -485,19 +532,47 @@ More recipes in [docs/ci-integration.md](docs/ci-integration.md).
 
 ## Tech stack
 
-| Layer | Technology |
-| --- | --- |
-| Language | [![Go](https://img.shields.io/badge/Go_1.25-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev) |
-| CLI | [![Cobra](https://img.shields.io/badge/Cobra-38B2AC?style=flat&logo=go&logoColor=white)](https://cobra.dev) [![Viper](https://img.shields.io/badge/Viper-4B32C3?style=flat&logo=go&logoColor=white)](https://github.com/spf13/viper) |
-| IaC | [![Terraform](https://img.shields.io/badge/Terraform-844FBA?style=flat&logo=terraform&logoColor=white)](https://terraform.io) [![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18?style=flat&logo=opentofu&logoColor=black)](https://opentofu.org) |
-| Storage | [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://postgresql.org) [![Redis](https://img.shields.io/badge/Redis-FF4438?style=flat&logo=redis&logoColor=white)](https://redis.io) |
-| Messaging | [![NATS](https://img.shields.io/badge/NATS-27AAE1?style=flat&logo=natsdotio&logoColor=white)](https://nats.io) |
-| Observability | [![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-425CC7?style=flat&logo=opentelemetry&logoColor=white)](https://opentelemetry.io) [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io) [![Zap](https://img.shields.io/badge/Zap-0E76A8?style=flat&logo=go&logoColor=white)](https://github.com/uber-go/zap) |
-| Transport | [![gRPC](https://img.shields.io/badge/gRPC-244C5A?style=flat&logo=grpc&logoColor=white)](https://grpc.io) |
-| Packaging | [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://docker.com) [![GoReleaser](https://img.shields.io/badge/GoReleaser-317F6F?style=flat&logo=goreleaser&logoColor=white)](https://goreleaser.com) |
-| CI | [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)](https://github.com/features/actions) [![golangci-lint](https://img.shields.io/badge/golangci--lint-00ADD8?style=flat&logo=go&logoColor=white)](https://golangci-lint.run) |
+### What the CLI is built from
 
-The CLI itself depends on Cobra, Viper, `golang.org/x/term`, and the standard library. Postgres, Redis, NATS, and gRPC belong to the server components and are not linked into local analysis paths.
+The whole of local analysis is these. Everything below is linked into the 16 MB static binary you install.
+
+| Purpose | Technology |
+| --- | --- |
+| Language | [![Go](https://img.shields.io/badge/Go%201.25-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev) |
+| Commands, flags, completion | [![Cobra](https://img.shields.io/badge/Cobra-2E9E8F?style=for-the-badge&logo=go&logoColor=white)](https://cobra.dev) |
+| Config files, env precedence | [![Viper](https://img.shields.io/badge/Viper-5C3EE8?style=for-the-badge&logo=go&logoColor=white)](https://github.com/spf13/viper) |
+| Terminal detection and width | [![x/term](https://img.shields.io/badge/golang.org%2Fx%2Fterm-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://pkg.go.dev/golang.org/x/term) |
+| Config and rule parsing | [![YAML](https://img.shields.io/badge/yaml.v3-CB171E?style=for-the-badge&logo=yaml&logoColor=white)](https://gopkg.in/yaml.v3) |
+| Structured logging | [![Zap](https://img.shields.io/badge/Zap-0E76A8?style=for-the-badge&logo=go&logoColor=white)](https://github.com/uber-go/zap) |
+
+Tables, colour, diffs, spinners, SARIF, the state and plan parsers, the dependency graph, and the notification ledger are all standard library. No TUI framework, no HTTP client library, no cloud SDK.
+
+### What it reads and writes
+
+| | |
+| --- | --- |
+| Infrastructure as code | [![Terraform](https://img.shields.io/badge/Terraform-844FBA?style=for-the-badge&logo=terraform&logoColor=white)](https://terraform.io) [![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18?style=for-the-badge&logo=opentofu&logoColor=black)](https://opentofu.org) |
+| Findings out | [![SARIF](https://img.shields.io/badge/SARIF%202.1.0-2088FF?style=for-the-badge&logo=github&logoColor=white)](https://sarifweb.azurewebsites.net) [![JSON](https://img.shields.io/badge/JSON-000000?style=for-the-badge&logo=json&logoColor=white)](https://json.org) |
+| Notifications out | [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://slack.com) [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com) [![Webhook](https://img.shields.io/badge/Signed%20webhook-6E7681?style=for-the-badge&logo=webhooks&logoColor=white)](SECURITY.md#webhook-signing) |
+| Diagrams | [![Graphviz](https://img.shields.io/badge/Graphviz-165C9E?style=for-the-badge&logo=graphviz&logoColor=white)](https://graphviz.org) [![Mermaid](https://img.shields.io/badge/Mermaid-FF3670?style=for-the-badge&logo=mermaid&logoColor=white)](https://mermaid.js.org) |
+
+### How it ships
+
+| | |
+| --- | --- |
+| Build and release | [![GoReleaser](https://img.shields.io/badge/GoReleaser-317F6F?style=for-the-badge&logo=goreleaser&logoColor=white)](https://goreleaser.com) [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/features/actions) |
+| Install | [![Homebrew](https://img.shields.io/badge/Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black)](https://brew.sh) [![Scoop](https://img.shields.io/badge/Scoop-555555?style=for-the-badge&logo=windows&logoColor=white)](https://scoop.sh) [![Docker](https://img.shields.io/badge/Distroless-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/GoogleContainerTools/distroless) [![pkg.go.dev](https://img.shields.io/badge/pkg.go.dev-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://pkg.go.dev/github.com/ashutosh0x/infra-control) |
+| Quality gates | [![golangci-lint](https://img.shields.io/badge/golangci--lint-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golangci-lint.run) [![CodeQL](https://img.shields.io/badge/CodeQL-2088FF?style=for-the-badge&logo=github&logoColor=white)](https://codeql.github.com) |
+
+### Not in the binary
+
+`cmd/controller`, `cmd/worker`, and `cmd/mcp-server` are **skeletons**. They import PostgreSQL, Redis, NATS, gRPC, OpenTelemetry, and Prometheus, and none of that is linked into `infractl`. Verify it yourself:
+
+```bash
+go list -deps ./cmd/infractl | grep -E 'pgx|redis|nats|grpc|prometheus'   # no output
+```
+
+They are listed here only so the dependency list in `go.mod` is not mistaken for the CLI's.
 
 ---
 
@@ -508,31 +583,34 @@ flowchart LR
     subgraph inputs["Inputs, read-only"]
         direction TB
         stateFile["terraform.tfstate"]
-        liveFile["live.json<br/>live snapshot"]
-        planFile["plan.json<br/>terraform show -json"]
+        liveFile["live.json<br/>snapshot"]
+        planFile["plan.json"]
     end
 
-    subgraph binary["infractl, single static binary"]
+    subgraph binary["infractl, one static binary"]
         direction TB
-        tfPkg["internal/terraform<br/>state and plan parsing<br/>attribute comparison"]
-        graphPkg["internal/graph<br/>dependency edges<br/>blast radius"]
-        riskPkg["internal/risk<br/>four-dimension scoring"]
-        ignorePkg["internal/ignore<br/>suppression rules"]
-        uiPkg["internal/ui<br/>tables, diffs, formats"]
+        tfPkg["terraform<br/>state and plan parsing<br/>attribute comparison"]
+        graphPkg["graph<br/>dependency edges<br/>blast radius"]
+        riskPkg["risk<br/>four-dimension scoring"]
+        ignorePkg["ignore<br/>suppression rules"]
+        notifyPkg["notify<br/>ledger, events<br/>ownership, routing"]
+        uiPkg["ui<br/>tables, diffs, formats"]
 
         tfPkg --> graphPkg
         tfPkg --> riskPkg
         tfPkg --> ignorePkg
+        ignorePkg --> notifyPkg
         graphPkg --> uiPkg
         riskPkg --> uiPkg
-        ignorePkg --> uiPkg
+        notifyPkg --> uiPkg
     end
 
     subgraph outputs["Outputs"]
         direction TB
         outStream["stdout<br/>table, json, yaml, csv, sarif"]
-        errStream["stderr<br/>progress, warnings, errors"]
+        errStream["stderr<br/>progress, warnings"]
         exitCode["exit code<br/>0 clean, 3 findings, 1 failed"]
+        sinks["sinks<br/>Slack, GitHub, webhook"]
     end
 
     stateFile --> tfPkg
@@ -541,14 +619,17 @@ flowchart LR
     uiPkg --> outStream
     uiPkg --> errStream
     uiPkg --> exitCode
+    notifyPkg --> sinks
 
     classDef inputNode fill:#e8f4f8,stroke:#0969da,color:#111
     classDef coreNode fill:#f0f0ff,stroke:#8250df,color:#111
     classDef outputNode fill:#eaf5ea,stroke:#1a7f37,color:#111
     class stateFile,liveFile,planFile inputNode
-    class tfPkg,graphPkg,riskPkg,ignorePkg,uiPkg coreNode
-    class outStream,errStream,exitCode outputNode
+    class tfPkg,graphPkg,riskPkg,ignorePkg,notifyPkg,uiPkg coreNode
+    class outStream,errStream,exitCode,sinks outputNode
 ```
+
+The only outbound network traffic this binary makes is to a sink you configure. Analysis opens no sockets.
 
 Local analysis touches no network and no server component. The optional hosted control plane is separate:
 
@@ -581,7 +662,7 @@ flowchart TB
     class pg,redis,nats store
 ```
 
-These are skeletons. See [Project status](#project-status). Details in [docs/architecture.md](docs/architecture.md).
+These are skeletons, excluded from default builds. See [Project status](#project-status).
 
 ---
 
@@ -591,11 +672,16 @@ Honest accounting of what works.
 
 | Area | Status |
 | --- | --- |
-| State parsing, drift detection, plan analysis, risk scoring, graph | Implemented and tested |
-| Terminal UI, output formats, exit codes | Implemented and tested |
-| Cloud provider discovery (live API reads) | Not implemented; drift takes a snapshot file instead |
-| Policy engine (OPA/Rego), compliance, cost, remediation | Data model and CLI surface exist; no working backend |
-| Control-plane server, controller, worker, MCP | Skeletons |
+| State and plan parsing, drift detection, risk scoring, dependency graph | Implemented, tested |
+| Snapshot capture from a refresh-only plan | Implemented, tested |
+| Suppression rules, remediation output, coverage metric | Implemented, tested |
+| Notifications: ledger, events, ownership, routing, Slack/GitHub/webhook | Implemented, tested |
+| Terminal UI, eight output formats, exit codes, config files | Implemented, tested |
+| Live cloud API reads | **Not implemented.** Drift compares against a snapshot file; `snapshot from-plan` builds one from Terraform itself |
+| Unmanaged-resource detection from a refresh-only snapshot | **Structurally impossible.** Terraform refreshes only what it manages; this needs an inventory read |
+| Interactive bot, slash commands | Not implemented. One-way delivery only, by design; see [docs/notifications.md](docs/notifications.md) |
+| Policy engine (OPA/Rego), compliance, cost | Not implemented, and not planned. Checkov and Trivy own static policy; Infracost owns cost |
+| Control-plane server, worker, MCP | Skeletons, excluded from default builds |
 
 Commands without a working implementation return an error saying so. They never print a placeholder result, because a placeholder is indistinguishable from a real answer to whoever reads the output — and infrastructure decisions get made on that output.
 
