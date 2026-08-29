@@ -194,7 +194,7 @@ jobs:
           events=$(jq '.events | length' second.json)
           test "$events" -eq 0 || { echo "a repeat scan produced $events events"; cat second.json; exit 1; }
 
-          # Fixing a finding produces exactly one resolved event.
+          # Fixing a finding produces a resolved event.
           jq '.resources["aws_s3_bucket.assets"].acl = "private"' live.json > tmp && mv tmp live.json
           ../infractl notify --state terraform.tfstate --live live.json -o json > third.json
           jq -e '[.events[] | select(.kind == "resolved")] | length >= 1' third.json > /dev/null
@@ -202,7 +202,7 @@ jobs:
       - name: Notifications carry no attribute values
         run: |
           cd notifytest
-          ../infractl notify --state terraform.tfstate --live live.json \n            --no-save -o json > payload.json
+          ../infractl notify --state terraform.tfstate --live live.json --no-save -o json > payload.json
           if grep -q 'correct-horse-battery-staple' payload.json; then
             echo 'a sensitive value reached a notification payload'
             exit 1
