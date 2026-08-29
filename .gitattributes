@@ -1,0 +1,17 @@
+# Normalise line endings on commit. Editing files from Python or PowerShell on
+# Windows writes CRLF, which gofmt then reports as a formatting failure in CI.
+# Declaring the intent here means the repository stays LF regardless of the
+# tool that wrote a file.
+* text=auto eol=lf
+
+# Binary and generated files must not be touched.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+
+# Test fixtures are parsed byte-for-byte; keep them exactly as written.
+testdata/** text eol=lf
