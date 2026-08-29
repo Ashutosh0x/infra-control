@@ -283,3 +283,11 @@ func FindDefault(dir string) string {
 		dir = parent
 	}
 }
+
+// Active returns the rules currently suppressing findings.
+func (s *Ruleset) Active() []Rule {
+	if s == nil {
+		return nil
+	}
+	return s.rules
+}
